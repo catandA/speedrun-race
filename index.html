@@ -592,7 +592,7 @@ $('btnGen').onclick = async function () {
   var key = $('inpKey').value.trim();
   if (!key) { log('⚠ 请粘贴 SecretKey'); return; }
   if (/^[0-9a-fA-F]{64}$/.test(key)) {
-    log('⚠ 该密钥是 64 位 hex —— 这通常是公钥/私钥(非对称密钥)或 ECDSA 私钥, 不是 HMAC SecretKey! 请到控制台「应用信息→快速上手→第二步」确认算法为 HMAC-SHA256, 复制单个 SDK 密钥再试');
+    log('⚠ 密钥为 64 位 hex。若控制台显示的是「公钥/私钥」则处于非对称模式, HMAC 签名不适用, 需在「应用信息→快速上手→第二步」切回 HMAC-SHA256; 若显示单个 SDK 密钥则是正常格式, 请确认是从控制台当前「复制密钥」拿到的 (旧快照/聊天转发可能不是当前生效密钥)');
   }
   if ($('chkRemember').checked) { try { localStorage.setItem('trtcKey', key); } catch (x) {} }
   var users = $('inpUsers').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
