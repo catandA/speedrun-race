@@ -22,6 +22,17 @@
 
 ## 二、生成选手/裁判的 UserSig
 
+**推荐: 页面内置组织者工具(密钥不出浏览器)**
+
+打开直播间页面 → 进房表单下方「🛠 组织者工具」→ 粘贴 SecretKey → 每行一个用户ID → 选有效期 → 点「生成链接」→ 复制全部, 分别发给对应选手。
+
+- 密钥只在你浏览器里用 WebCrypto 本地计算, 不上传任何服务器
+- 名字含 `judge` 的生成裁判链接, 其余生成选手链接(自动带 `&auto=1`)
+- 可勾选"记住密钥"存本机 localStorage(公共电脑勿勾); 清除: 控制台执行 `localStorage.removeItem('trtcKey')`
+- 签名算法与 `gen_sig.py` 逐字节一致(已对拍验证)
+
+**备选: 本地脚本** (不想开页面时)
+
 ```bash
 # users.txt 每行一个名字: judge / player1 / player2 ...
 python gen_sig.py --sdkappid 1600156752 --key 你的密钥 --batch users.txt

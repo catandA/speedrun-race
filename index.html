@@ -76,6 +76,31 @@
     裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1</code><br>
     选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)
   </div>
+  <hr style="margin:16px 0;border-color:var(--line)">
+  <details>
+    <summary style="cursor:pointer;font-size:13px;color:var(--acc)">🛠 组织者工具: 本地生成签名/链接 (密钥不出浏览器)</summary>
+    <label>应用密钥 SecretKey (只在你的浏览器里算签名, 不会上传到任何服务器)</label>
+    <input type="password" id="inpKey" placeholder="粘贴 SecretKey">
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="chkRemember"> 记住密钥 (存本机浏览器 localStorage, 公共电脑勿勾)</label>
+    </div>
+    <label>用户ID (每行一个; 名字含 judge 的生成裁判链接, 其余生成选手链接)</label>
+    <textarea id="inpUsers" rows="4" placeholder="judge&#10;player1&#10;player2"></textarea>
+    <div class="row">
+      <label class="chk">有效期
+        <select id="selExpire">
+          <option value="86400">1 天</option>
+          <option value="604800">7 天</option>
+          <option value="2592000">30 天</option>
+          <option value="15552000" selected>180 天</option>
+        </select>
+      </label>
+      <button class="btn" id="btnGen">生成链接</button>
+      <button class="btn gray" id="btnCopy">复制全部</button>
+    </div>
+    <textarea id="outLinks" rows="6" readonly placeholder="生成的带签名链接会出现在这里, 复制后分别发给对应选手"></textarea>
+    <div class="hint" id="genHint"></div>
+  </details>
 </section>
 
 <!-- 选手面板 -->
@@ -450,6 +475,55 @@ function updateJudgeHint() {
     : '专注模式: 只拉取当前关注的选手(大流, 最清晰), 点格子切换关注 — 最省时长包';
   $('judgeHint').textContent = modeTxt + '。 计费按"实际订阅的路数和分辨率"算, 全览拉 8 路小流(标清档) ≈ 专注拉 1 路大流(高清档)。';
 }
+
+/* ========== 组织者工具: 本地 UserSig 生成 (WebCrypto, 密钥不出浏览器) ========== */
+async function genUserSig(sdkAppId, key, userId, expire) {
+  var now = Math.floor(Date.now() / 1000);
+  var input = 'TLS.identifier:' + userId + '&TLS.sdkappid:' + sdkAppId + '&TLS.time:' + now + '&TLS.expire:' + expire;
+  var enc = new TextEncoder();
+  var keyBuf = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  var sigBuf = await crypto.subtle.sign('HMAC', keyBuf, enc.encode(input));
+  var sig = btoa(String.fromCharCode.apply(null, new Uint8Array(sigBuf)));
+  var payload = {
+    'TLS.ver': '2.0',
+    'TLS.identifier': userId,
+    'TLS.sdkappid': sdkAppId,
+    'TLS.expire': expire,
+    'TLS.time': now,
+    'TLS.sig': sig
+  };
+  return btoa(JSON.stringify(payload));
+}
+function baseUrl() { return location.origin + location.pathname; }
+$('btnGen').onclick = async function () {
+  var key = $('inpKey').value.trim();
+  if (!key) { log('⚠ 请粘贴 SecretKey'); return; }
+  if ($('chkRemember').checked) { try { localStorage.setItem('trtcKey', key); } catch (x) {} }
+  var users = $('inpUsers').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!users.length) { log('⚠ 请填写用户ID'); return; }
+  var expire = Number($('selExpire').value);
+  var room = ($('inpRoom').value.trim() || DEFAULTS.room);
+  var lines = [];
+  for (var i = 0; i < users.length; i++) {
+    var uid = users[i];
+    var sig = await genUserSig(cfg.sdkAppId, key, uid, expire);
+    var extra = (uid.toLowerCase().indexOf('judge') >= 0) ? '&judge=1' : '&auto=1';
+    lines.push(baseUrl() + '?room=' + encodeURIComponent(room) + '&userId=' + encodeURIComponent(uid) + '&userSig=' + encodeURIComponent(sig) + extra);
+  }
+  $('outLinks').value = lines.join('\n');
+  $('genHint').textContent = '已生成 ' + lines.length + ' 条链接, 有效期 ' + (expire / 86400) + ' 天。链接含签名, 只发给对应选手本人。';
+  log('✅ 已生成 ' + lines.length + ' 条链接 (有效期 ' + (expire / 86400) + ' 天)');
+};
+$('btnCopy').onclick = function () {
+  var t = $('outLinks');
+  t.select();
+  try { document.execCommand('copy'); log('✅ 已复制全部链接'); }
+  catch (e) { log('⚠ 复制失败, 请手动全选复制'); }
+};
+try {
+  var savedKey = localStorage.getItem('trtcKey');
+  if (savedKey) { $('inpKey').value = savedKey; $('chkRemember').checked = true; }
+} catch (x) {}
 
 /* ========== 退出 ========== */
 async function leave() {
