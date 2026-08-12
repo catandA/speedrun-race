@@ -14,13 +14,14 @@ import LogPanel from './components/LogPanel.vue'
 import AutoplayOverlay from './components/AutoplayOverlay.vue'
 
 const cfg = parseConfig()
-const { joined, status, tiles, judgeMode, join: trtcJoin, leave: trtcLeave, toggleJudgeMode } = useTrtc()
+const { joined, status, tiles, focusedUid, join: trtcJoin, leave: trtcLeave } = useTrtc()
 const { stopShare } = useScreenShare()
 const { log } = useLog()
 
 const roomLabel = computed(() => '房间: ' + cfg.room)
 const roleLabel = computed(() => '角色: ' + (cfg.isJudge ? '裁判' : '选手') + ' (' + cfg.userId + ')')
 const onlineCount = computed(() => Object.keys(tiles).length)
+const hasFocus = computed(() => !!focusedUid.value)
 
 async function onJoin(form) {
   // 合并表单到 cfg
@@ -75,7 +76,7 @@ onMounted(() => {
   <JoinForm v-if="!joined" :initial="cfg" @join="onJoin" />
 
   <PlayerPanel v-else-if="!cfg.isJudge" :small="cfg.small" :auto-share="cfg.autoShare" />
-  <JudgePanel v-else :judge-mode="judgeMode" :count="onlineCount" @toggle-mode="toggleJudgeMode" />
+  <JudgePanel v-else :count="onlineCount" :focused="hasFocus" />
 
   <VideoGrid v-if="joined && cfg.isJudge" />
 

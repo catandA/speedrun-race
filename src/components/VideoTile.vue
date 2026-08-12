@@ -26,7 +26,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="tile"
-    :class="{ waiting: !isLive && !isOffline, offline: isOffline, live: isLive, fullscreen: tile.fullscreen, focused: tile.focused }"
+    :class="{ waiting: !isLive && !isOffline, offline: isOffline, live: isLive, fullscreen: tile.fullscreen }"
     @click="emit('click', tile)"
   >
     <div class="video" ref="videoRef"></div>
@@ -60,7 +60,6 @@ onBeforeUnmount(() => {
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .tile:hover { border-color: var(--acc); transform: translateY(-2px); box-shadow: var(--shadow); }
-.tile.focused { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-soft); }
 .tile.fullscreen { position: fixed; inset: 0; z-index: 50; border-radius: 0; aspect-ratio: auto; }
 .video { width: 100%; height: 100%; }
 .video :deep(video) { width: 100%; height: 100%; object-fit: contain; background: #000; }

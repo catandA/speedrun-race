@@ -6,8 +6,7 @@ const trtc = ref(null)
 const joined = ref(false)
 const status = reactive({ text: '未连接', cls: '' })
 const tiles = reactive({})        // uid -> tile 对象 (reactive)
-const judgeMode = ref('all')       // all | focus
-const focusedUid = ref(null)
+const focusedUid = ref(null)       // 当前全屏聚焦的选手, null = 网格模式
 
 let EV = {}
 
@@ -81,7 +80,7 @@ export function useTrtc() {
 
     if (!cfg.isJudge) return
 
-    // 裁判: 远端用户/流管理
+    // 裁判: 远端用户/流管理 (统一订阅, 聚焦者拉大流, 其余拉小流)
     if (E.REMOTE_USER_ENTER) t.on(E.REMOTE_USER_ENTER, e => ensureTile(e.userId))
     if (E.REMOTE_USER_EXIT) t.on(E.REMOTE_USER_EXIT, e => setTileOffline(e.userId))
     if (E.REMOTE_VIDEO_AVAILABLE) t.on(E.REMOTE_VIDEO_AVAILABLE, e => {
@@ -89,7 +88,8 @@ export function useTrtc() {
       tile.types[e.streamType] = true
       tile.streamType = preferType(tile)
       updateTileUI(tile)
-      if (judgeMode.value === 'all' || focusedUid.value === e.userId) subscribeTile(tile)
+      // 始终订阅: 聚焦者大流, 其余小流
+      subscribeTile(tile)
     })
     if (E.REMOTE_VIDEO_UNAVAILABLE) t.on(E.REMOTE_VIDEO_UNAVAILABLE, e => {
       const tile = tiles[e.userId]
@@ -119,10 +119,12 @@ export function useTrtc() {
       types: {},
       playing: {},
       streamType: null,
+      currentSmall: null,   // 当前订阅所用 small 配置 (true=小流, false=大流, null=未订阅)
       audio: false,
       muted: false,
       status: 'waiting',
-      videoEl: null,      // VideoTile 组件 mounted 时注入 DOM 容器
+      fullscreen: false,    // 是否全屏显示
+      videoEl: null,        // VideoTile 组件 mounted 时注入 DOM 容器
       statusText: '等待推流'
     })
     tiles[uid] = tile
@@ -137,6 +139,11 @@ export function useTrtc() {
       try { trtc.value.stopRemoteVideo({ userId: uid, streamType: tile.streamType }) } catch (x) {}
       tile.playing[tile.streamType] = false
     }
+    // 离线时若是聚焦者, 清除聚焦
+    if (focusedUid.value === uid) {
+      focusedUid.value = null
+      tile.fullscreen = false
+    }
     tile.statusText = '离线'
   }
 
@@ -144,34 +151,42 @@ export function useTrtc() {
     let st
     if (tile.status === 'offline') st = '离线'
     else if (tile.streamType === TRTC.TYPE.STREAM_TYPE_MAIN) {
-      st = (tile.playing[tile.streamType] && judgeMode.value === 'focus' && focusedUid.value === tile.uid) ? '大流' : '小流'
+      st = (tile.playing[tile.streamType] && tile.currentSmall === false) ? '大流' : '小流'
     } else if (tile.streamType) st = '屏幕(辅流)'
     else st = '等待推流'
     tile.statusText = st + (tile.audio ? ' · 有声音' : '')
   }
 
   function shouldSubscribe(tile) {
-    if (!tile.streamType) return false
-    if (judgeMode.value === 'all') return true
-    return focusedUid.value === tile.uid
+    // 统一订阅所有有流的选手 (聚焦者大流, 其余小流)
+    return !!tile.streamType
   }
 
+  // 订阅 / 切换大流小流. TRTC 不支持动态改 option, 配置变化时需 stop 后重新 start.
   function subscribeTile(tile) {
     if (!tile.streamType) return
     if (!tile.videoEl) {
       // 容器还没 mount, 稍后 VideoTile mounted 会调 retrySubscribe
       return
     }
-    const small = !(judgeMode.value === 'focus' && focusedUid.value === tile.uid)
-    if (!tile.playing[tile.streamType]) {
-      trtc.value.startRemoteVideo({ userId: tile.uid, streamType: tile.streamType, view: tile.videoEl, option: { small } })
-        .then(() => {
-          tile.playing[tile.streamType] = true
-          tile.status = 'live'
-          updateTileUI(tile)
-        })
-        .catch(e => log('⚠ 拉流失败 ' + tile.uid + ': ' + e.message))
+    const isFocused = focusedUid.value === tile.uid
+    const small = !isFocused   // 聚焦者大流, 其余小流
+
+    if (tile.playing[tile.streamType]) {
+      if (tile.currentSmall === small) return   // 配置相同, 无需操作
+      // 大流 ↔ 小流切换, 先停止当前订阅
+      try { trtc.value.stopRemoteVideo({ userId: tile.uid, streamType: tile.streamType }) } catch (x) {}
+      tile.playing[tile.streamType] = false
     }
+
+    trtc.value.startRemoteVideo({ userId: tile.uid, streamType: tile.streamType, view: tile.videoEl, option: { small } })
+      .then(() => {
+        tile.playing[tile.streamType] = true
+        tile.currentSmall = small
+        tile.status = 'live'
+        updateTileUI(tile)
+      })
+      .catch(e => log('⚠ 拉流失败 ' + tile.uid + ': ' + e.message))
   }
 
   function retrySubscribe(uid) {
@@ -183,22 +198,31 @@ export function useTrtc() {
     if (tile.streamType && tile.playing[tile.streamType]) {
       try { trtc.value.stopRemoteVideo({ userId: tile.uid, streamType: tile.streamType }) } catch (x) {}
       tile.playing[tile.streamType] = false
+      tile.currentSmall = null
       tile.status = 'waiting'
       updateTileUI(tile)
     }
   }
 
+  // 点击选手: 聚焦者全屏+大流, 其余网格+小流; 再次点击聚焦者则退出全屏
   function tileClick(tile) {
-    if (judgeMode.value === 'all') {
-      // 全览: 点击全屏单看
-      tile.fullscreen = !tile.fullscreen
-      Object.values(tiles).forEach(x => { if (x !== tile) x.fullscreen = false })
+    if (focusedUid.value === tile.uid) {
+      // 已聚焦 → 退出全屏, 切回小流
+      focusedUid.value = null
+      tile.fullscreen = false
+      subscribeTile(tile)   // small 变化触发 大流→小流 重订阅
+      updateTileUI(tile)
     } else {
-      // 专注: 切换关注
+      // 聚焦新选手: 旧聚焦者切回小流, 新聚焦者切大流+全屏
       const prev = focusedUid.value
       focusedUid.value = tile.uid
-      if (prev && tiles[prev]) unsubscribeTile(tiles[prev])
-      subscribeTile(tile)
+      if (prev && tiles[prev]) {
+        tiles[prev].fullscreen = false
+        subscribeTile(tiles[prev])   // 切回小流
+        updateTileUI(tiles[prev])
+      }
+      tile.fullscreen = true
+      subscribeTile(tile)            // 切大流
       updateTileUI(tile)
     }
   }
@@ -208,18 +232,6 @@ export function useTrtc() {
     const v = tile.videoEl && tile.videoEl.querySelector('video')
     if (v) v.muted = tile.muted
     try { if (TRTC) trtc.value.muteRemoteAudio({ userId: tile.uid, muted: tile.muted }) } catch (x) {}
-  }
-
-  function toggleJudgeMode() {
-    judgeMode.value = judgeMode.value === 'all' ? 'focus' : 'all'
-    focusedUid.value = null
-    Object.values(tiles).forEach(t => {
-      t.fullscreen = false
-      if (t.streamType) {
-        if (judgeMode.value === 'all') subscribeTile(t)
-        else unsubscribeTile(t)
-      }
-    })
   }
 
   async function leave() {
@@ -238,16 +250,15 @@ export function useTrtc() {
     Object.keys(tiles).forEach(k => { delete tiles[k] })
     joined.value = false
     trtc.value = null
-    judgeMode.value = 'all'
     focusedUid.value = null
     setStatus('未连接', '')
   }
 
   return {
-    trtc, joined, status, tiles, judgeMode, focusedUid,
+    trtc, joined, status, tiles, focusedUid,
     join, leave,
     ensureTile, retrySubscribe, subscribeTile, unsubscribeTile,
-    tileClick, toggleMute, toggleJudgeMode, updateTileUI,
+    tileClick, toggleMute, updateTileUI,
     setStatus
   }
 }
