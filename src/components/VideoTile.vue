@@ -25,11 +25,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="tile"
+    class="tile scanlines"
     :class="{ waiting: !isLive && !isOffline, offline: isOffline, live: isLive, fullscreen: tile.fullscreen }"
     @click="emit('click', tile)"
   >
     <div class="video" ref="videoRef"></div>
+    <div class="scan-sweep" v-if="isLive && !tile.fullscreen" aria-hidden="true"></div>
 
     <div class="topbar">
       <span class="live-tag go" v-if="isLive"><span class="dot"></span>LIVE</span>
@@ -74,13 +75,17 @@ onBeforeUnmount(() => {
   overflow: hidden;
   aspect-ratio: 16 / 9;
   cursor: pointer;
-  transition: border-color 0.12s;
+  transition: border-color 0.14s var(--ease-out-quart), box-shadow 0.14s var(--ease-out-quart);
 }
 .tile:hover { border-color: var(--go); }
-.tile.live { border-color: var(--border-acc); }
-.tile.fullscreen { position: fixed; inset: 0; z-index: 50; border-radius: 0; aspect-ratio: auto; border: none; }
+/* 直播中: 绿边 + 信号辉光, 和待机/离线拉开明显差距 */
+.tile.live {
+  border-color: var(--go);
+  box-shadow: 0 0 0 1px var(--go), 0 0 26px -8px var(--go), inset 0 0 30px -16px var(--go);
+}
+.tile.fullscreen { position: fixed; inset: 0; z-index: 50; border-radius: 0; aspect-ratio: auto; border: none; box-shadow: none; }
 
-.video { width: 100%; height: 100%; }
+.video { width: 100%; height: 100%; position: relative; z-index: 1; }
 .video :deep(video) { width: 100%; height: 100%; object-fit: contain; background: #000; }
 
 /* 顶部条 */

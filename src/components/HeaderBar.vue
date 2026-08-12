@@ -12,10 +12,12 @@ defineEmits(['leave'])
 <template>
   <header class="topbar">
     <div class="brand">
-      <span class="mark">SR</span>
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M13.5 1 4 13.2c-.5.6-.1 1.5.7 1.5H11l-1.6 7.7c-.2.9.9 1.4 1.4.7L20 10.9c.5-.6.1-1.5-.7-1.5H13l.5-7.4c.1-.8-.8-1.3-1.3-.6z"/></svg>
+      </span>
       <div class="wordmark">
-        <h1>SPEEDRUN RACE</h1>
-        <span class="sub">速通比赛直播间</span>
+        <h1>SPEEDRUN<span class="accent">RACE</span></h1>
+        <span class="sub">速通比赛直播间 / LIVE CONSOLE</span>
       </div>
     </div>
 
@@ -26,7 +28,7 @@ defineEmits(['leave'])
 
     <div class="spacer"></div>
 
-    <span class="live-tag" :class="statusCls || 'bad'">
+    <span class="live-tag hd-status" :class="statusCls || 'bad'">
       <span class="dot"></span>{{ statusText }}
     </span>
 
@@ -51,29 +53,34 @@ defineEmits(['leave'])
   z-index: 30;
 }
 
-.brand { display: flex; align-items: center; gap: 10px; }
-/* SR 标识: 方块字标, 不用渐变不用发光 */
+.brand { display: flex; align-items: center; gap: 11px; }
+/* 闪电标识: 速通的灵魂符号, 绿底带一点信号辉光 */
 .mark {
   display: grid; place-items: center;
-  width: 30px; height: 30px;
+  width: 32px; height: 32px;
   background: var(--go);
   color: #04140a;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.5px;
   border-radius: var(--radius);
+  box-shadow: 0 0 18px -6px var(--go);
+  flex-shrink: 0;
 }
-.wordmark { display: flex; flex-direction: column; line-height: 1.1; }
+.wordmark { display: flex; flex-direction: column; line-height: 1.05; }
 .wordmark h1 {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: var(--fg);
+  white-space: nowrap;
 }
-.wordmark .sub { font-size: 10px; color: var(--fg-mute); letter-spacing: 0.8px; }
+.wordmark h1 .accent { color: var(--go); margin-left: 3px; }
+.wordmark .sub { font-size: 9.5px; color: var(--fg-mute); letter-spacing: 1px; margin-top: 2px; }
 
 .tags { display: flex; gap: 7px; flex-wrap: wrap; }
 .spacer { flex: 1; }
+
+/* 顶栏状态徽章略放大, go 态带辉光强调"在直播" */
+.hd-status { font-size: 12px; padding: 4px 11px; }
+.hd-status.go { box-shadow: 0 0 16px -6px var(--go); }
 
 .leave { color: var(--fg-dim); }
 </style>

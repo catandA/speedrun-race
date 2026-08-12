@@ -49,11 +49,21 @@ const elapsed = computed(() => {
           <p class="subtitle">分享屏幕作为直播主流</p>
         </div>
       </div>
-      <span class="live-tag go" v-if="sharing">
-        <span class="dot"></span>LIVE {{ elapsed }}
-      </span>
-      <span class="tag" v-else>未开播</span>
+      <span class="tag" v-if="!sharing">未开播</span>
     </header>
+
+    <!-- 英雄计时器: 速通直播的灵魂, 直播中才显示 -->
+    <div class="timer-hero" v-if="sharing">
+      <div class="th-left">
+        <span class="rec-dot" aria-hidden="true"></span>
+        <span class="th-live">LIVE</span>
+        <span class="th-tag">REC</span>
+      </div>
+      <div class="th-time hero-timer">{{ elapsed }}</div>
+      <div class="th-right">
+        <span class="th-unit">ELAPSED</span>
+      </div>
+    </div>
 
     <div class="actions">
       <button v-if="!sharing" class="btn green" @click="onShare">
@@ -73,7 +83,8 @@ const elapsed = computed(() => {
       <span class="tag">720P · 30FPS</span>
     </div>
 
-    <div class="preview" :class="{ live: sharing }" ref="previewRef">
+    <div class="preview scanlines" :class="{ live: sharing }" ref="previewRef">
+      <div class="scan-sweep" v-if="sharing" aria-hidden="true"></div>
       <div v-if="!sharing" class="preview-empty">
         <span class="ph-t">NO SIGNAL</span>
         <span class="ph-s">点「开始直播」选择游戏窗口或显示器</span>
@@ -93,7 +104,7 @@ const elapsed = computed(() => {
 <style scoped>
 .bc-panel { max-width: 680px; padding: 20px 22px; }
 
-.bc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; justify-content: space-between; }
 .title-wrap { display: flex; align-items: center; gap: 10px; }
 .mark {
   display: grid; place-items: center;
@@ -101,9 +112,47 @@ const elapsed = computed(() => {
   background: var(--go); color: #04140a;
   font-weight: 800; font-size: 12px;
   border-radius: var(--radius);
+  box-shadow: 0 0 16px -6px var(--go);
 }
 .bc-head h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
 .subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; }
+
+/* —— 英雄计时器: 直播中才有, 巨型发光等宽, 速通灵魂 —— */
+.timer-hero {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px;
+  margin: 4px 0 16px;
+  background: linear-gradient(180deg, var(--go-dim), rgba(14, 58, 34, 0.25));
+  border: 1px solid var(--border-acc);
+  border-radius: var(--radius);
+  box-shadow: var(--go-glow);
+  position: relative;
+  overflow: hidden;
+}
+/* 计时器左侧一道高光, 像计分板灯条 */
+.timer-hero::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--go);
+  box-shadow: 0 0 12px var(--go);
+}
+.th-left { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.th-live { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--go); }
+.th-tag {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+  color: var(--bad); background: var(--bad-dim);
+  border: 1px solid #5a1e2e;
+  padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.th-time { font-size: 40px; flex: 1; text-align: center; }
+.th-right { flex-shrink: 0; }
+.th-unit { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: var(--fg-dim); text-transform: uppercase; }
+@media (max-width: 560px) {
+  .th-time { font-size: 30px; }
+  .timer-hero { gap: 10px; padding: 12px 14px; }
+  .th-right { display: none; }
+}
 
 .actions { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
 
@@ -117,8 +166,8 @@ const elapsed = computed(() => {
   margin-top: 14px;
   overflow: hidden;
 }
-.preview.live { border-color: var(--go); }
-.preview :deep(video) { width: 100%; height: 100%; object-fit: contain; }
+.preview.live { border-color: var(--go); box-shadow: 0 0 26px -8px var(--go); }
+.preview :deep(video) { width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1; }
 .preview-empty {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; gap: 8px;

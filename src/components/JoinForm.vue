@@ -127,7 +127,9 @@ function copyAll() {
 <template>
   <section class="panel join-panel">
     <header class="join-head">
-      <span class="mark">SR</span>
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 1 4 13.2c-.5.6-.1 1.5.7 1.5H11l-1.6 7.7c-.2.9.9 1.4 1.4.7L20 10.9c.5-.6.1-1.5-.7-1.5H13l.5-7.4c.1-.8-.8-1.3-1.3-.6z"/></svg>
+      </span>
       <div>
         <h2>进入直播间</h2>
         <p class="subtitle">填写房间信息加入比赛直播</p>
@@ -255,11 +257,11 @@ function copyAll() {
   display: grid; place-items: center;
   width: 34px; height: 34px;
   background: var(--go); color: #04140a;
-  font-weight: 800; font-size: 14px;
   border-radius: var(--radius);
+  box-shadow: 0 0 18px -6px var(--go);
   flex-shrink: 0;
 }
-.join-head h2 { font-size: 17px; font-weight: 700; letter-spacing: 0.4px; }
+.join-head h2 { font-size: 17px; font-weight: 800; letter-spacing: 0.4px; }
 .subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; letter-spacing: 0.3px; }
 
 .field { margin-top: 2px; }

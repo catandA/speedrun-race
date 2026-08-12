@@ -1,30 +1,32 @@
 /* ============================================================
-   速通比赛直播间 · 计分板设计系统
+   速通比赛直播间 · 计分板设计系统 (广播感放大版)
    参考 LiveSplit / speedrun.com / GDQ 计时器: 等宽字体 + 分段时间色
    颜色做语义而非装饰: 绿=直播/进行, 琥珀=警告/分段, 红=离线/失败
+   英雄时刻 = LIVE 计时器; 氛围 = 扫描线/网格/暗角; 动效 = 有目的的广播脉动
    ============================================================ */
 
 :root {
-  /* —— 表面 (扁平, 无玻璃) —— */
-  --bg: #0a0a0c;
-  --bg-1: #070708;
-  --surface: #141418;
-  --surface-2: #1c1c22;
-  --surface-3: #24242c;
-  --inset: #060607;
+  /* —— 表面 (扁平, 无玻璃; 略带绿调让中性色不冷死) —— */
+  --bg: #08090c;
+  --bg-1: #060709;
+  --surface: #121319;
+  --surface-2: #1a1c24;
+  --surface-3: #23262f;
+  --inset: #050607;
 
   /* —— 描边 —— */
-  --border: #2a2a33;
-  --border-strong: #3a3a45;
+  --border: #282a33;
+  --border-strong: #3a3d48;
   --border-acc: #1f6b3f;
 
   /* —— 文字 —— */
-  --fg: #f0f0f5;
-  --fg-dim: #9a9aa6;
-  --fg-mute: #5e5e6a;
+  --fg: #f2f3f7;
+  --fg-dim: #9a9ca8;
+  --fg-mute: #5c5e6a;
 
-  /* —— 分段时间色 (语义) —— */
+  /* —— 分段时间色 (语义, 速通灵魂) —— */
   --go: #3df58a;      /* 直播中 / 进行 (LiveSplit 绿) */
+  --go-soft: #5cff9c;
   --go-dim: #0e3a22;
   --split: #ffb000;   /* 警告 / 分段 (琥珀) */
   --split-dim: #3a2c08;
@@ -38,8 +40,17 @@
   /* —— 阴影: 极少, 极克制 —— */
   --shadow: 0 0 0 1px var(--border);
 
-  /* —— 字体: 全等宽, 计时器就是等宽 —— */
+  /* —— LIVE 辉光: 克制的计分板发光, 非满屏霓虹 —— */
+  --go-glow: 0 0 0 1px var(--go), 0 0 22px -6px var(--go);
+  --go-glow-strong: 0 0 0 1px var(--go), 0 0 34px -4px var(--go), 0 0 60px -10px var(--go);
+
+  /* —— 字体: 全等宽, 计时器就是等宽; 靠字号/字重拉开层级而非换字族 —— */
   --font-mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", "Consolas", "Microsoft YaHei", monospace;
+
+  /* —— 动效令牌 —— */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,7 +72,35 @@ body {
   -webkit-font-smoothing: antialiased;
   /* 顶部的细分隔线, 像计分板边框 */
   border-top: 2px solid var(--go);
+  position: relative;
+  overflow-x: hidden;
 }
+
+/* —— 广播氛围底: 极淡网格 + 顶部绿色信号辉光 + 暗角, 全程不抢内容 —— */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    /* 顶部一点绿色信号晕, 像 LIVE 灯映在墙上 */
+    radial-gradient(120% 60% at 50% -10%, rgba(61, 245, 138, 0.07), transparent 60%),
+    /* 极淡网格, 几乎看不见, 只给一点结构感 */
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px) 0 0 / 44px 44px;
+}
+/* 四角暗角, 聚焦中央, 像显像管 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 130% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+/* 内容压在氛围层之上 */
+#app { position: relative; z-index: 1; }
 
 button { font-family: inherit; }
 a { color: var(--go); text-decoration: none; }
@@ -94,7 +133,7 @@ input::placeholder, textarea::placeholder { color: var(--fg-mute); }
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--go);
-  box-shadow: 0 0 0 2px var(--go-dim);
+  box-shadow: 0 0 0 2px var(--go-dim), 0 0 18px -8px var(--go);
 }
 /* 错误态字段 */
 input.err, textarea.err { border-color: var(--bad); }
@@ -127,31 +166,32 @@ label {
   letter-spacing: 0.3px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  transition: background 0.12s var(--ease-out-quart), border-color 0.12s, color 0.12s, transform 0.08s;
 }
 .btn:hover { background: var(--surface-3); border-color: var(--border-strong); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
 
-/* 主按钮: 绿, "进行"语义 */
+/* 主按钮: 绿, "进行"语义, 带一点信号辉光 */
 .btn.primary {
   background: var(--go);
   border-color: var(--go);
   color: #04140a;
   font-weight: 700;
+  box-shadow: 0 0 22px -8px var(--go);
 }
-.btn.primary:hover { background: #5cff9c; border-color: #5cff9c; }
-.btn.primary:disabled { background: var(--surface-3); color: var(--fg-mute); border-color: var(--border); }
+.btn.primary:hover { background: var(--go-soft); border-color: var(--go-soft); box-shadow: 0 0 28px -6px var(--go); }
+.btn.primary:disabled { background: var(--surface-3); color: var(--fg-mute); border-color: var(--border); box-shadow: none; }
 
-.btn.green { background: var(--go); border-color: var(--go); color: #04140a; font-weight: 700; }
-.btn.green:hover { background: #5cff9c; }
-.btn.red { background: var(--bad); border-color: var(--bad); color: #2a0710; font-weight: 700; }
-.btn.red:hover { background: #ff6d8c; }
+.btn.green { background: var(--go); border-color: var(--go); color: #04140a; font-weight: 700; box-shadow: 0 0 22px -8px var(--go); }
+.btn.green:hover { background: var(--go-soft); box-shadow: 0 0 28px -6px var(--go); }
+.btn.red { background: var(--bad); border-color: var(--bad); color: #2a0710; font-weight: 700; box-shadow: 0 0 22px -8px var(--bad); }
+.btn.red:hover { background: #ff6d8c; box-shadow: 0 0 28px -6px var(--bad); }
 
 .btn.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--fg-dim); }
 .btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
-.btn.ghost.active { border-color: var(--go); color: var(--go); background: var(--go-dim); }
+.btn.ghost.active { border-color: var(--go); color: var(--go); background: var(--go-dim); box-shadow: 0 0 16px -8px var(--go); }
 
 .btn.sm { padding: 5px 11px; font-size: 12px; }
 
@@ -165,8 +205,13 @@ label {
   padding: 18px 20px;
   margin: 16px auto;
   max-width: 980px;
+  animation: panel-in 420ms var(--ease-out-expo) both;
 }
 .panel h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* —— 收敛后的胶囊: 只两种 —— */
 /* .tag: 中性信息 */
@@ -202,7 +247,7 @@ label {
 .live-tag.bad { color: var(--bad); background: var(--bad-dim); border-color: #5a1e2e; }
 .live-tag .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .live-tag.go .dot { box-shadow: 0 0 6px var(--go); }
-@keyframes blink { 50% { opacity: 0.3; } }
+@keyframes blink { 50% { opacity: 0.25; } }
 .live-tag.go .dot { animation: blink 1s steps(2) infinite; }
 @media (prefers-reduced-motion: reduce) { .live-tag.go .dot { animation: none; } }
 
@@ -212,4 +257,90 @@ label {
   margin-top: 5px;
   font-size: 11px;
   color: var(--bad);
+}
+
+/* ============================================================
+   广播感组件: 扫描线 / REC 脉动 / 英雄计时器 / 入场错峰
+   只用在视频面与直播状态上, 不污染表单/日志可读性
+   ============================================================ */
+
+/* 扫描线纹理: 贴在视频/预览表面, 像 CRT 显像管 */
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+
+/* 扫描线掠过: 一道亮线周期性扫过直播画面 */
+.scan-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 3;
+}
+.scan-sweep::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, rgba(61, 245, 138, 0.06), transparent);
+  animation: sweep 4.5s linear infinite;
+}
+@keyframes sweep {
+  0% { transform: translateY(-40%); }
+  100% { transform: translateY(340%); }
+}
+@media (prefers-reduced-motion: reduce) { .scan-sweep::before { animation: none; display: none; } }
+
+/* REC 点: 直播中的录制脉动, 比 live-tag 的点更醒目 */
+.rec-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 8px var(--bad);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.82); }
+}
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+
+/* 英雄计时器: 速通直播的灵魂, 巨型发光等宽 */
+.hero-timer {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--go);
+  text-shadow: 0 0 18px rgba(61, 245, 138, 0.45), 0 0 40px rgba(61, 245, 138, 0.2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* 入场错峰: 列表项按 --i 顺序浮入 */
+.stagger {
+  animation: rise 380ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel, .stagger { animation: none; }
 }

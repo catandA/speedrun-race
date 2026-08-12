@@ -13,9 +13,11 @@ const list = computed(() => Object.values(tiles))
   <div class="grid-wrap">
     <div class="grid" :class="{ 'has-fullscreen': list.some(t => t.fullscreen) }">
       <VideoTile
-        v-for="t in list"
+        v-for="(t, i) in list"
         :key="t.uid"
         :tile="t"
+        :style="{ '--i': i }"
+        class="stagger"
         @click="tileClick"
         @mute="toggleMute"
       />

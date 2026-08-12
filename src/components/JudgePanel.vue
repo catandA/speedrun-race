@@ -38,11 +38,14 @@ defineProps({
   background: var(--go); color: #04140a;
   font-weight: 800; font-size: 12px;
   border-radius: var(--radius);
+  box-shadow: 0 0 16px -6px var(--go);
 }
-.jc-head h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
+.jc-head h2 { font-size: 15px; font-weight: 800; letter-spacing: 0.4px; }
 .subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; }
 
-.stats { margin-left: auto; display: flex; gap: 7px; align-items: center; }
+.stats { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+/* 在线计数放大: 裁判最关心的数字 */
+.stats .live-tag.go { font-size: 12px; padding: 4px 11px; box-shadow: 0 0 16px -6px var(--go); }
 .hint { font-size: 11.5px; color: var(--fg-dim); line-height: 1.8; }
 .kbd-hint { color: var(--go); margin-left: 6px; }
 </style>

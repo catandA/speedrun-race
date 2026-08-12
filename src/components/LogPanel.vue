@@ -23,7 +23,7 @@ watch(() => logs.length, async () => {
         <span class="log-time">{{ l.t }}</span>
         <span class="log-msg">{{ l.msg }}</span>
       </div>
-      <div v-if="!logs.length" class="log-empty">运行日志将显示在这里…</div>
+      <div v-if="!logs.length" class="log-empty">运行日志将显示在这里<span class="cur">_</span></div>
     </div>
   </div>
 </template>
@@ -77,4 +77,8 @@ watch(() => logs.length, async () => {
 .log-time { color: var(--fg-mute); flex-shrink: 0; }
 .log-msg { white-space: pre-wrap; word-break: break-all; }
 .log-empty { color: var(--fg-mute); }
+/* 终端光标 */
+.cur { color: var(--go); animation: cur-blink 1s steps(2) infinite; }
+@keyframes cur-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cur { animation: none; } }
 </style>
