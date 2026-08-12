@@ -74,7 +74,7 @@
   <div class="hint">
     也可用带参数链接一键进房:<br>
     选手: <code>index.html?room=race1&userId=player1&userSig=xxxx</code><br>
-    裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1&judgeKey=race2026</code><br>
+    裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1&judgeKey=impig</code><br>
     选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)<br>
     <span style="color:var(--warn)">裁判口令只发给裁判本人, 选手不知道口令无法进入裁判模式</span>
   </div>
@@ -89,7 +89,8 @@
     <label>用户ID (每行一个; 名字含 judge 的生成裁判链接, 其余生成选手链接)</label>
     <textarea id="inpUsers" rows="4" placeholder="judge&#10;player1&#10;player2"></textarea>
     <label>裁判口令 (裁判链接自动带上; 只发给裁判本人, 选手不知道口令进不了裁判模式)</label>
-    <input type="text" id="inpJudgeKeyTool" style="max-width:220px" placeholder="默认 race2026, 可改成自己的">
+    <input type="text" id="inpJudgeKeyTool" style="max-width:220px">
+    <div class="hint">口令必须与页面源码里的 JUDGE_KEY 一致(当前: <b>impig</b>); 要改口令请先修改 index.html 的 JUDGE_KEY 再刷新本页。</div>
     <div class="row">
       <label class="chk">有效期
         <select id="selExpire">
@@ -165,7 +166,7 @@ var DEFAULTS = { sdkAppId: 1600156752, room: 'race1' };
    组织者工具生成裁判链接时会自动带上(口令只发给裁判本人)。
    注意: 这是"防君子"的轻量防线(口令存在于页面源码, 认真逆向可绕过);
    需要真正的选手隔离请用"一人一房间"方案。赛前把下面的值改成自己的口令。 */
-var JUDGE_KEY = 'race2026';
+var JUDGE_KEY = 'impig';
 var qs = new URLSearchParams(location.search);
 var cfg = {
   sdkAppId: Number(qs.get('sdkAppId') || DEFAULTS.sdkAppId),
@@ -217,6 +218,24 @@ function fillForm() {
   $('chkJudge').checked = cfg.isJudge;
   $('inpJudgeKey').value = cfg.judgeKey;
 }
+function precheckUserSig(sig, uid, appid) {
+  var errs = [];
+  try {
+    var p = JSON.parse(atob(sig));
+    if (p['TLS.identifier'] !== uid) {
+      errs.push('UserSig 绑定的用户ID是 "' + p['TLS.identifier'] + '", 与填写的 "' + uid + '" 不一致 — UserSig 与 userId 必须一一对应, 请用组织者工具按用户ID分别生成');
+    }
+    if (Number(p['TLS.sdkappid']) !== Number(appid)) {
+      errs.push('UserSig 里的 SDKAppID (' + p['TLS.sdkappid'] + ') 与页面 (' + appid + ') 不一致');
+    }
+    if (Number(p['TLS.time']) + Number(p['TLS.expire']) < Math.floor(Date.now() / 1000)) {
+      errs.push('UserSig 已过期, 请重新生成');
+    }
+  } catch (e) {
+    errs.push('UserSig 无法解析, 请重新生成 (检查是否复制完整)');
+  }
+  return errs;
+}
 function join() {
   cfg.room = $('inpRoom').value.trim() || DEFAULTS.room;
   cfg.userId = $('inpUid').value.trim();
@@ -230,6 +249,12 @@ function join() {
   }
   if (!cfg.userId) { log('⚠ 请填写用户ID'); return; }
   if (!cfg.userSig) { log('⚠ 请填写 UserSig'); return; }
+  /* 本地预检 UserSig: 解出 identifier/sdkappid/有效期, 提前拦截最常见的错误 */
+  var pre = precheckUserSig(cfg.userSig, cfg.userId, cfg.sdkAppId);
+  if (pre.length) {
+    pre.forEach(function (m) { log('⚠ ' + m); });
+    return;
+  }
   ensureTrtcReady(function () {
     if (!TRTC.isSupported()) { log('❌ 当前浏览器不支持 WebRTC/TRTC, 请使用最新版 Chrome 或 Edge'); return; }
     doJoin();
@@ -521,6 +546,9 @@ $('btnGen').onclick = async function () {
   var expire = Number($('selExpire').value);
   var room = ($('inpRoom').value.trim() || DEFAULTS.room);
   var jkey = ($('inpJudgeKeyTool').value.trim() || JUDGE_KEY);
+  if (jkey !== JUDGE_KEY) {
+    log('⚠ 裁判口令与页面 JUDGE_KEY 不一致 (' + jkey + ' ≠ ' + JUDGE_KEY + '), 生成的裁判链接会被降级为选手! 请在 index.html 里改 JUDGE_KEY 或改用默认口令');
+  }
   var lines = [];
   for (var i = 0; i < users.length; i++) {
     var uid = users[i];
