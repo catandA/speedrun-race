@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { parseConfig, JUDGE_SALT } from './composables/useConfig'
 import { precheckUserSig, verifyJudgeToken } from './composables/useUserSig'
 import { useTrtc } from './composables/useTrtc'
@@ -55,11 +55,55 @@ async function onLeave() {
   location.replace(url.toString())
 }
 
+// === 后台/关闭自动退房防护 ===
+// 避免页面后台或直接关闭后, TRTC 连接仍挂着持续计费 (语音时长按在房时长累加)
+const HIDE_TIMEOUT = 5 * 60 * 1000   // 切后台超过5分钟自动退房
+let hideTimer = null
+
+function clearHideTimer() {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+}
+
+// 后台超时退房: 页面还活着, 可以 await 完整清理
+async function autoLeaveForHidden() {
+  if (!joined.value) return
+  hideTimer = null
+  try { await stopShare() } catch (x) {}
+  await trtcLeave()
+  log('⚠ 因后台超时已自动退房 (避免持续计费), 回来请重新进房')
+}
+
+function onVisibility() {
+  if (document.hidden) {
+    if (joined.value && !hideTimer) hideTimer = setTimeout(autoLeaveForHidden, HIDE_TIMEOUT)
+  } else {
+    // 回到前台: 取消退房计划 (5分钟内回来不退)
+    clearHideTimer()
+  }
+}
+
+function onPageHide() {
+  // 页面关闭/刷新: 立即断开连接, 不 await (页面即将卸载, 尽力发离开信令)
+  clearHideTimer()
+  if (joined.value) {
+    try { stopShare() } catch (x) {}
+    try { trtcLeave() } catch (x) {}
+  }
+}
+
 onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibility)
+  window.addEventListener('pagehide', onPageHide)
   // URL 参数齐了就自动进房
   if (cfg.userId && cfg.userSig) {
     onJoin(cfg).catch(e => log('⚠ 进房流程异常: ' + (e && e.message ? e.message : e)))
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibility)
+  window.removeEventListener('pagehide', onPageHide)
+  clearHideTimer()
 })
 </script>
 
