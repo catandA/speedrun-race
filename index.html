@@ -637,7 +637,10 @@ try {
 async function leave() {
   try { if (trtc) await trtc.leaveRoom(); } catch (x) {}
   joined = false; setStatus('未连接', '');
-  location.reload();
+  /* 清掉 URL 参数再重载, 否则带 room/userId/userSig 的链接 reload 后会因自动进房逻辑又进房 */
+  var url = new URL(location.href);
+  url.search = '';
+  location.replace(url.toString());
 }
 
 /* ========== 初始化 ========== */
