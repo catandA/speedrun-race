@@ -67,14 +67,16 @@
   <label>UserSig (控制台「开发辅助工具→UserSig生成&校验」生成, 或本地脚本批量生成)</label>
   <textarea id="inpSig" rows="2" placeholder="粘贴 UserSig"></textarea>
   <div class="row">
-    <label class="chk"><input type="checkbox" id="chkJudge"> 我是裁判 (看多路画面)</label>
+    <label class="chk"><input type="checkbox" id="chkJudge"> 我是裁判 (需口令)</label>
+    <input type="text" id="inpJudgeKey" placeholder="裁判口令" style="max-width:220px">
     <button class="btn" id="btnJoin">进房</button>
   </div>
   <div class="hint">
     也可用带参数链接一键进房:<br>
     选手: <code>index.html?room=race1&userId=player1&userSig=xxxx</code><br>
-    裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1</code><br>
-    选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)
+    裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1&judgeKey=race2026</code><br>
+    选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)<br>
+    <span style="color:var(--warn)">裁判口令只发给裁判本人, 选手不知道口令无法进入裁判模式</span>
   </div>
   <hr style="margin:16px 0;border-color:var(--line)">
   <details>
@@ -86,6 +88,8 @@
     </div>
     <label>用户ID (每行一个; 名字含 judge 的生成裁判链接, 其余生成选手链接)</label>
     <textarea id="inpUsers" rows="4" placeholder="judge&#10;player1&#10;player2"></textarea>
+    <label>裁判口令 (裁判链接自动带上; 只发给裁判本人, 选手不知道口令进不了裁判模式)</label>
+    <input type="text" id="inpJudgeKeyTool" style="max-width:220px" placeholder="默认 race2026, 可改成自己的">
     <div class="row">
       <label class="chk">有效期
         <select id="selExpire">
@@ -157,6 +161,11 @@
 'use strict';
 /* ========== 全局状态 ========== */
 var DEFAULTS = { sdkAppId: 1600156752, room: 'race1' };
+/* 裁判口令: 勾选"我是裁判"或 URL 带 judge=1 时, 必须同时提供正确口令才能进入裁判模式。
+   组织者工具生成裁判链接时会自动带上(口令只发给裁判本人)。
+   注意: 这是"防君子"的轻量防线(口令存在于页面源码, 认真逆向可绕过);
+   需要真正的选手隔离请用"一人一房间"方案。赛前把下面的值改成自己的口令。 */
+var JUDGE_KEY = 'race2026';
 var qs = new URLSearchParams(location.search);
 var cfg = {
   sdkAppId: Number(qs.get('sdkAppId') || DEFAULTS.sdkAppId),
@@ -165,7 +174,8 @@ var cfg = {
   userSig: (qs.get('userSig') || '').trim(),
   isJudge: qs.get('judge') === '1',
   autoShare: qs.get('auto') === '1',
-  small: qs.get('small') || '120p'
+  small: qs.get('small') || '120p',
+  judgeKey: (qs.get('judgeKey') || '').trim()
 };
 var trtc = null;
 var joined = false;
@@ -205,12 +215,19 @@ function fillForm() {
   $('inpUid').value = cfg.userId;
   $('inpSig').value = cfg.userSig;
   $('chkJudge').checked = cfg.isJudge;
+  $('inpJudgeKey').value = cfg.judgeKey;
 }
 function join() {
   cfg.room = $('inpRoom').value.trim() || DEFAULTS.room;
   cfg.userId = $('inpUid').value.trim();
   cfg.userSig = $('inpSig').value.trim();
   cfg.isJudge = $('chkJudge').checked;
+  cfg.judgeKey = $('inpJudgeKey').value.trim();
+  if (cfg.isJudge && cfg.judgeKey !== JUDGE_KEY) {
+    log('⚠ 裁判口令错误: 勾选了"我是裁判"但口令不对, 已降级为选手模式进房');
+    cfg.isJudge = false;
+    $('chkJudge').checked = false;
+  }
   if (!cfg.userId) { log('⚠ 请填写用户ID'); return; }
   if (!cfg.userSig) { log('⚠ 请填写 UserSig'); return; }
   ensureTrtcReady(function () {
@@ -503,11 +520,12 @@ $('btnGen').onclick = async function () {
   if (!users.length) { log('⚠ 请填写用户ID'); return; }
   var expire = Number($('selExpire').value);
   var room = ($('inpRoom').value.trim() || DEFAULTS.room);
+  var jkey = ($('inpJudgeKeyTool').value.trim() || JUDGE_KEY);
   var lines = [];
   for (var i = 0; i < users.length; i++) {
     var uid = users[i];
     var sig = await genUserSig(cfg.sdkAppId, key, uid, expire);
-    var extra = (uid.toLowerCase().indexOf('judge') >= 0) ? '&judge=1' : '&auto=1';
+    var extra = (uid.toLowerCase().indexOf('judge') >= 0) ? '&judge=1&judgeKey=' + encodeURIComponent(jkey) : '&auto=1';
     lines.push(baseUrl() + '?room=' + encodeURIComponent(room) + '&userId=' + encodeURIComponent(uid) + '&userSig=' + encodeURIComponent(sig) + extra);
   }
   $('outLinks').value = lines.join('\n');

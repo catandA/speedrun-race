@@ -54,8 +54,10 @@ python gen_sig.py --sdkappid 1600156752 --key 你的密钥 --batch users.txt
 ## 四、发链接
 
 - 选手: `https://.../index.html?room=race1&userId=player1&userSig=xxxx`
-- 裁判: `https://.../index.html?room=race1&userId=judge&userSig=xxxx&judge=1`
+- 裁判: `https://.../index.html?room=race1&userId=judge&userSig=xxxx&judge=1&judgeKey=race2026`
 - 选手加 `&auto=1` 进房自动弹分享; 小流档位 `&small=120p`(可选 240p/360p)
+- **裁判口令**: 勾选"我是裁判"或 URL 带 `judge=1` 时必须有正确口令(`JUDGE_KEY`, 页面源码里可改), 否则降级为选手模式。口令只发给裁判本人, 选手不知道口令无法偷看他人画面。
+  - 说明: 这是"防君子"的轻量防线——口令在页面源码里, 认真逆向可绕过; 若比赛严格禁止选手互看, 请升级为"一人一房间+房间密码"方案。
 
 ## 五、选手操作(就 3 步)
 
