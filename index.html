@@ -243,12 +243,14 @@ function fillForm() {
   $('inpJudgeKey').value = cfg.judgeKey;
 }
 function tryParseUserSig(sig) {
-  try { return JSON.parse(atob(sig)); } catch (e) { return null; }
+  /* 兼容控制台 URL-safe base64 (* - _) 与标准 base64 (+ / =) */
+  try { return JSON.parse(atob(sig.replace(/\*/g, '+').replace(/-/g, '/').replace(/_/g, '='))); } catch (e) { return null; }
 }
 async function inflateUserSig(sig) {
-  /* 控制台生成的压缩格式 (eJx 开头, zlib) — 优先 pako, 退回 DecompressionStream */
+  /* 控制台生成的压缩格式 (eJx 开头, zlib, URL-safe base64) — 优先 pako, 退回 DecompressionStream */
   try {
-    var bytes = Uint8Array.from(atob(sig), function (c) { return c.charCodeAt(0); });
+    var b = sig.replace(/\*/g, '+').replace(/-/g, '/').replace(/_/g, '=');
+    var bytes = Uint8Array.from(atob(b), function (c) { return c.charCodeAt(0); });
     if (window.pako) {
       return JSON.parse(window.pako.inflate(bytes, { to: 'string' }));
     }
@@ -558,7 +560,7 @@ function updateJudgeHint() {
 /* ========== 组织者工具: 本地 UserSig 生成 (WebCrypto, 密钥不出浏览器) ========== */
 async function genUserSig(sdkAppId, key, userId, expire) {
   var now = Math.floor(Date.now() / 1000);
-  var input = 'TLS.identifier:' + userId + '&TLS.sdkappid:' + sdkAppId + '&TLS.time:' + now + '&TLS.expire:' + expire;
+  var input = 'TLS.identifier:' + userId + '\nTLS.sdkappid:' + sdkAppId + '\nTLS.time:' + now + '\nTLS.expire:' + expire + '\n';
   var enc = new TextEncoder();
   var keyBuf = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   var sigBuf = await crypto.subtle.sign('HMAC', keyBuf, enc.encode(input));
@@ -574,17 +576,20 @@ async function genUserSig(sdkAppId, key, userId, expire) {
   return btoa(JSON.stringify(payload));
 }
 async function compressUserSig(stdSig) {
-  /* 控制台同款: 压缩的是 JSON 文本 (不是 base64 串), zlib 包裹 — 优先 pako, 退回 CompressionStream; 失败退回标准格式 */
+  /* 控制台同款: 压缩的是 JSON 文本 (不是 base64 串), zlib 包裹 + URL-safe base64 (+ -> *, / -> -, = -> _) — 优先 pako, 退回 CompressionStream; 失败退回标准格式 */
   try {
-    var json = JSON.stringify(JSON.parse(atob(stdSig)));
+    var json = JSON.stringify(JSON.parse(atob(stdSig.replace(/\*/g, '+').replace(/-/g, '/').replace(/_/g, '='))));
     var bytes = new TextEncoder().encode(json);
+    var out;
     if (window.pako) {
-      return btoa(String.fromCharCode.apply(null, window.pako.deflate(bytes)));
+      out = btoa(String.fromCharCode.apply(null, window.pako.deflate(bytes)));
+    } else {
+      var cs = new CompressionStream('deflate');
+      var stream = new Blob([bytes]).stream().pipeThrough(cs);
+      var buf = await new Response(stream).arrayBuffer();
+      out = btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
     }
-    var cs = new CompressionStream('deflate');
-    var stream = new Blob([bytes]).stream().pipeThrough(cs);
-    var buf = await new Response(stream).arrayBuffer();
-    return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+    return out.replace(/\+/g, '*').replace(/\//g, '-').replace(/=/g, '_');
   } catch (e) { return stdSig; }
 }
 function baseUrl() { return location.origin + location.pathname; }
