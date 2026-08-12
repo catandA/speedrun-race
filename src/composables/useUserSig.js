@@ -73,3 +73,31 @@ export async function compressUserSig(stdSig) {
     return out.replace(/\+/g, '*').replace(/\//g, '-').replace(/=/g, '_')
   } catch (e) { return stdSig }
 }
+
+// ===== 裁判凭据 (HMAC 签名, 替代明文口令) =====
+// judgeToken = base64url(JSON({ u: userId, e: 过期时间戳, s: HMAC-SHA256(SALT, userId:e) }))
+// 组织者生成裁判链接时自动产生; 裁判拿链接即用; 选手无盐无法伪造。
+export async function genJudgeToken(salt, userId, expire) {
+  const e = Math.floor(Date.now() / 1000) + expire
+  const msg = userId + ':' + e
+  const enc = new TextEncoder()
+  const keyBuf = await crypto.subtle.importKey('raw', enc.encode(salt), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const sigBuf = await crypto.subtle.sign('HMAC', keyBuf, enc.encode(msg))
+  const s = btoa(String.fromCharCode.apply(null, new Uint8Array(sigBuf)))
+  const payload = { u: userId, e, s }
+  return btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+export async function verifyJudgeToken(salt, token, userId) {
+  try {
+    const json = JSON.parse(atob(token.replace(/-/g, '+').replace(/_/g, '/')))
+    if (json.u !== userId) return false
+    if (Number(json.e) < Math.floor(Date.now() / 1000)) return false
+    const msg = userId + ':' + json.e
+    const enc = new TextEncoder()
+    const keyBuf = await crypto.subtle.importKey('raw', enc.encode(salt), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+    const sigBuf = await crypto.subtle.sign('HMAC', keyBuf, enc.encode(msg))
+    const expected = btoa(String.fromCharCode.apply(null, new Uint8Array(sigBuf)))
+    return expected === json.s
+  } catch (x) { return false }
+}

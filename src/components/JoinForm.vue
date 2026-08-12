@@ -1,11 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { JUDGE_KEY } from '../composables/useConfig'
-import { genUserSig, compressUserSig } from '../composables/useUserSig'
+import { JUDGE_SALT } from '../composables/useConfig'
+import { genUserSig, compressUserSig, genJudgeToken } from '../composables/useUserSig'
 import { useLog } from '../composables/useLog'
 
 const props = defineProps({
-  initial: Object   // { room, userId, userSig, isJudge, judgeKey }
+  initial: Object   // { room, userId, userSig, isJudge, judgeToken }
 })
 const emit = defineEmits(['join'])
 const { log } = useLog()
@@ -14,7 +14,7 @@ const room = ref(props.initial.room)
 const userId = ref(props.initial.userId)
 const userSig = ref(props.initial.userSig)
 const isJudge = ref(props.initial.isJudge)
-const judgeKey = ref(props.initial.judgeKey)
+const judgeToken = ref(props.initial.judgeToken)
 
 function submit() {
   emit('join', {
@@ -22,15 +22,14 @@ function submit() {
     userId: userId.value.trim(),
     userSig: userSig.value.trim(),
     isJudge: isJudge.value,
-    judgeKey: judgeKey.value.trim()
+    judgeToken: judgeToken.value.trim()
   })
 }
 
-/* ===== 组织者工具: 本地生成 UserSig (WebCrypto, 密钥不出浏览器) ===== */
+/* ===== 组织者工具: 本地生成 UserSig + 裁判凭据 (WebCrypto, 密钥不出浏览器) ===== */
 const inpKey = ref('')
 const chkRemember = ref(false)
 const inpUsers = ref('')
-const inpJudgeKeyTool = ref(JUDGE_KEY)
 const selExpire = ref('15552000')
 const selFmt = ref('compress')
 const outLinks = ref('')
@@ -59,17 +58,20 @@ async function genLinks() {
   const expire = Number(selExpire.value)
   const fmt = selFmt.value || 'compress'
   const roomVal = room.value.trim() || 'race1'
-  const jkey = inpJudgeKeyTool.value.trim() || JUDGE_KEY
-  if (jkey !== JUDGE_KEY) {
-    log('⚠ 裁判口令与页面 JUDGE_KEY 不一致 (' + jkey + ' ≠ ' + JUDGE_KEY + '), 生成的裁判链接会被降级为选手!')
-  }
   const sdkAppId = props.initial.sdkAppId
   const base = location.origin + location.pathname
   const lines = []
   for (const uid of users) {
     let sig = await genUserSig(sdkAppId, key, uid, expire)
     if (fmt === 'compress') sig = await compressUserSig(sig)
-    const extra = (uid.toLowerCase().indexOf('judge') >= 0) ? '&judge=1&judgeKey=' + encodeURIComponent(jkey) : '&auto=1'
+    let extra
+    if (uid.toLowerCase().indexOf('judge') >= 0) {
+      // 裁判: 生成 HMAC 签名凭据, 放进 URL; 裁判拿链接即用, 无需口令
+      const jt = await genJudgeToken(JUDGE_SALT, uid, expire)
+      extra = '&judge=1&jt=' + encodeURIComponent(jt)
+    } else {
+      extra = '&auto=1'
+    }
     lines.push(base + '?room=' + encodeURIComponent(roomVal) + '&userId=' + encodeURIComponent(uid) + '&userSig=' + encodeURIComponent(sig) + extra)
   }
   outLinks.value = lines.join('\n')
@@ -82,7 +84,6 @@ function copyAll() {
   navigator.clipboard.writeText(outLinks.value)
     .then(() => log('✅ 已复制全部链接'))
     .catch(() => {
-      // 退回 execCommand
       const ta = document.createElement('textarea')
       ta.value = outLinks.value
       document.body.appendChild(ta); ta.select()
@@ -103,17 +104,17 @@ function copyAll() {
     <textarea v-model="userSig" rows="2" placeholder="粘贴 UserSig"></textarea>
     <div class="row">
       <label class="chk">
-        <input type="checkbox" v-model="isJudge"> 我是裁判 (需口令)
+        <input type="checkbox" v-model="isJudge"> 我是裁判 (需凭据)
       </label>
-      <input type="text" v-model="judgeKey" placeholder="裁判口令" class="judge-key">
+      <input type="text" v-model="judgeToken" placeholder="裁判凭据 jt (由组织者工具生成)">
       <button class="btn primary" @click="submit">进房</button>
     </div>
     <div class="hint">
       也可用带参数链接一键进房:<br>
       选手: <code>?room=race1&userId=player1&userSig=xxxx</code><br>
-      裁判: <code>?room=race1&userId=judge&userSig=xxxx&judge=1&judgeKey={{ JUDGE_KEY }}</code><br>
+      裁判: <code>?room=race1&userId=judge&userSig=xxxx&judge=1&jt=签名凭据</code><br>
       选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)<br>
-      <span class="warn-text">裁判口令只发给裁判本人, 选手不知道口令无法进入裁判模式</span>
+      <span class="warn-text">裁判链接由组织者用下方工具生成, 自带签名凭据; 选手无法自行进入裁判模式</span>
     </div>
 
     <hr>
@@ -129,9 +130,7 @@ function copyAll() {
       </div>
       <label>用户ID (每行一个; 名字含 judge 的生成裁判链接, 其余生成选手链接)</label>
       <textarea v-model="inpUsers" rows="4" placeholder="judge&#10;player1&#10;player2"></textarea>
-      <label>裁判口令 (裁判链接自动带上; 只发给裁判本人)</label>
-      <input type="text" v-model="inpJudgeKeyTool" class="judge-key">
-      <div class="hint">口令必须与页面源码里的 JUDGE_KEY 一致(当前: <b>{{ JUDGE_KEY }}</b>); 要改口令请先修改 src/composables/useConfig.js 的 JUDGE_KEY 再重新部署。</div>
+      <div class="hint">裁判链接会自动生成签名凭据 <code>jt</code> 放进 URL, 裁判打开链接即进入裁判模式, 无需口令。选手链接不含凭据, 无法进入裁判模式。</div>
       <div class="row">
         <label class="chk">有效期
           <select v-model="selExpire">
@@ -159,7 +158,6 @@ function copyAll() {
 <style scoped>
 h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
-.judge-key { max-width: 220px; }
 .chk { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; color: var(--fg-dim); cursor: pointer; }
 .chk input[type="checkbox"], .chk select { width: auto; }
 .chk select { max-width: 200px; }

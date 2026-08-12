@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { parseConfig, JUDGE_KEY } from './composables/useConfig'
-import { precheckUserSig } from './composables/useUserSig'
+import { parseConfig, JUDGE_SALT } from './composables/useConfig'
+import { precheckUserSig, verifyJudgeToken } from './composables/useUserSig'
 import { useTrtc } from './composables/useTrtc'
 import { useScreenShare } from './composables/useScreenShare'
 import { useLog } from './composables/useLog'
@@ -28,10 +28,14 @@ async function onJoin(form) {
   cfg.userId = form.userId
   cfg.userSig = form.userSig
   cfg.isJudge = form.isJudge
-  cfg.judgeKey = form.judgeKey
-  if (cfg.isJudge && cfg.judgeKey !== JUDGE_KEY) {
-    log('⚠ 裁判口令错误: 勾选了"我是裁判"但口令不对, 已降级为选手模式进房')
-    cfg.isJudge = false
+  cfg.judgeToken = form.judgeToken
+  if (cfg.isJudge) {
+    // 验证裁判凭据 (HMAC 签名), 不通过则降级为选手
+    const ok = cfg.judgeToken ? await verifyJudgeToken(JUDGE_SALT, cfg.judgeToken, cfg.userId) : false
+    if (!ok) {
+      log('⚠ 裁判凭据无效或缺失, 已降级为选手模式 (裁判链接由组织者用工具生成, 选手无法自行进入)')
+      cfg.isJudge = false
+    }
   }
   if (!cfg.userId) { log('⚠ 请填写用户ID'); return }
   if (!cfg.userSig) { log('⚠ 请填写 UserSig'); return }
