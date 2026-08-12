@@ -13,16 +13,10 @@ watch(() => logs.length, async () => {
 <template>
   <div class="log-card">
     <div class="log-head">
-      <span class="title">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg>
-        运行日志
-      </span>
+      <span class="title">RUN LOG</span>
       <span class="count" v-if="logs.length">{{ logs.length }}</span>
       <span class="spacer"></span>
-      <button v-if="logs.length" class="clear" @click="clear" title="清空日志">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        清空
-      </button>
+      <button v-if="logs.length" class="clear" @click="clear" title="清空日志">CLEAR</button>
     </div>
     <div class="log-body" ref="el">
       <div v-for="(l, i) in logs" :key="i" class="log-line">
@@ -37,51 +31,46 @@ watch(() => logs.length, async () => {
 <style scoped>
 .log-card {
   max-width: 980px;
-  margin: 0 auto 22px;
-  padding: 0 24px;
+  margin: 0 auto 20px;
+  padding: 0 22px;
 }
 .log-card > * { box-sizing: border-box; }
 
 .log-head {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
-  background: var(--surface);
-  backdrop-filter: saturate(140%) blur(12px);
-  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  padding: 6px 12px;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
 }
 .title {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
-  text-transform: uppercase; color: var(--fg-dim);
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--fg-dim);
 }
-.title svg { color: var(--acc); }
 .count {
-  font-size: 11px; font-weight: 600; color: var(--acc);
-  background: var(--acc-soft); padding: 1px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; color: var(--go);
+  background: var(--go-dim); padding: 1px 7px; border-radius: var(--radius-sm); border: 1px solid var(--border-acc);
 }
 .spacer { flex: 1; }
 .clear {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; color: var(--fg-mute);
-  background: transparent; border: none; cursor: pointer;
-  padding: 3px 6px; border-radius: 5px;
-  transition: color 0.15s, background 0.15s;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+  color: var(--fg-mute);
+  background: transparent; border: 1px solid var(--border); cursor: pointer;
+  padding: 2px 7px; border-radius: var(--radius-sm);
+  transition: color 0.1s, border-color 0.1s;
 }
-.clear:hover { color: var(--bad); background: rgba(251,113,133,0.1); }
+.clear:hover { color: var(--bad); border-color: var(--bad); }
 
 .log-body {
   background: var(--inset);
   border: 1px solid var(--border);
   border-radius: 0 0 var(--radius) var(--radius);
-  padding: 10px 14px;
+  padding: 9px 12px;
   font-size: 12px;
   color: var(--fg-dim);
-  max-height: 180px;
+  max-height: 170px;
   overflow: auto;
-  font-family: var(--font-mono);
   line-height: 1.65;
 }
 .log-line { display: flex; gap: 10px; padding: 1px 0; }

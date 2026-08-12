@@ -20,7 +20,7 @@ const list = computed(() => Object.values(tiles))
         @mute="toggleMute"
       />
       <div v-if="!list.length" class="empty">
-        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+        <span class="ph-t">NO INPUT</span>
         <span>等待选手加入房间…</span>
       </div>
     </div>
@@ -31,22 +31,22 @@ const list = computed(() => Object.values(tiles))
 .grid-wrap {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 22px;
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 14px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-bottom: 6px;
 }
 .grid.has-fullscreen { display: block; }
 
 .empty {
   grid-column: 1 / -1;
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 10px;
   align-items: center; justify-content: center;
-  color: var(--fg-mute); font-size: 13px;
-  padding: 56px 0;
+  color: var(--fg-mute); font-size: 12px;
+  padding: 52px 0;
 }
-.empty svg { opacity: 0.5; }
+.empty .ph-t { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
 </style>

@@ -5,6 +5,7 @@ import { useLog } from './useLog'
 const sharing = ref(false)
 const micOn = ref(false)
 const compatMode = ref(false)
+const liveSince = ref(null)   // 开播起始时间戳, 用于 LIVE 计时器
 let screenTrack = null
 let screenStoppedBound = false
 
@@ -53,6 +54,7 @@ export function useScreenShare() {
         log('✅ 已开播: 屏幕=主流' + (use1080 ? ' 1080p' : ' 720p') + ', 小流=' + cfg.small)
       }
       sharing.value = true
+      liveSince.value = Date.now()
     } catch (e) {
       log('❌ 开播失败: ' + (e && e.message ? e.message : e))
     }
@@ -68,6 +70,7 @@ export function useScreenShare() {
         micOn.value = false
       }
       sharing.value = false
+      liveSince.value = null
     } catch (e) { log('⚠ 停止失败: ' + e.message) }
   }
 
@@ -88,5 +91,5 @@ export function useScreenShare() {
     log(compatMode.value ? '已切换兼容模式(辅流)' : '已切换主流模式')
   }
 
-  return { sharing, micOn, compatMode, startShare, stopShare, toggleMic, toggleCompat }
+  return { sharing, micOn, compatMode, liveSince, startShare, stopShare, toggleMic, toggleCompat }
 }

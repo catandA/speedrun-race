@@ -14,7 +14,7 @@ import LogPanel from './components/LogPanel.vue'
 import AutoplayOverlay from './components/AutoplayOverlay.vue'
 
 const cfg = parseConfig()
-const { joined, status, tiles, focusedUid, join: trtcJoin, leave: trtcLeave } = useTrtc()
+const { joined, status, tiles, focusedUid, join: trtcJoin, leave: trtcLeave, tileClick, toggleMute } = useTrtc()
 const { stopShare } = useScreenShare()
 const { log } = useLog()
 
@@ -91,9 +91,50 @@ function onPageHide() {
   }
 }
 
+// === 裁判键盘快捷键 (s6) ===
+// ESC: 退出全屏聚焦;  1-9: 聚焦对应序号的选手;  Space: 静音/取消聚焦者
+// 只在裁判模式且已进房时生效; 在表单/输入框聚焦时不抢键
+function onKeydown(e) {
+  if (!joined.value || !cfg.isJudge) return
+  const t = e.target
+  const tag = t && t.tagName
+  // 在输入框/文本域里敲键不抢
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return
+
+  // ESC: 退出全屏
+  if (e.key === 'Escape') {
+    if (focusedUid.value) {
+      const f = tiles[focusedUid.value]
+      if (f) tileClick(f)
+      e.preventDefault()
+    }
+    return
+  }
+
+  // 数字键 1-9: 聚焦对应选手
+  if (e.key >= '1' && e.key <= '9') {
+    const arr = Object.values(tiles)
+    const idx = Number(e.key) - 1
+    if (arr[idx]) {
+      tileClick(arr[idx])
+      e.preventDefault()
+    }
+    return
+  }
+
+  // 空格: 静音/取消聚焦者
+  if (e.code === 'Space') {
+    if (focusedUid.value) {
+      const f = tiles[focusedUid.value]
+      if (f) { toggleMute(f); e.preventDefault() }
+    }
+  }
+}
+
 onMounted(() => {
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('pagehide', onPageHide)
+  window.addEventListener('keydown', onKeydown)
   // URL 参数齐了就自动进房
   if (cfg.userId && cfg.userSig) {
     onJoin(cfg).catch(e => log('⚠ 进房流程异常: ' + (e && e.message ? e.message : e)))
@@ -103,6 +144,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibility)
   window.removeEventListener('pagehide', onPageHide)
+  window.removeEventListener('keydown', onKeydown)
   clearHideTimer()
 })
 </script>
