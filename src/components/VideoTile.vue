@@ -25,12 +25,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="tile scanlines"
+    class="tile"
     :class="{ waiting: !isLive && !isOffline, offline: isOffline, live: isLive, fullscreen: tile.fullscreen }"
     @click="emit('click', tile)"
   >
     <div class="video" ref="videoRef"></div>
-    <div class="scan-sweep" v-if="isLive && !tile.fullscreen" aria-hidden="true"></div>
 
     <div class="topbar">
       <span class="live-tag go" v-if="isLive"><span class="dot"></span>LIVE</span>

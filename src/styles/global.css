@@ -260,51 +260,9 @@ label {
 }
 
 /* ============================================================
-   广播感组件: 扫描线 / REC 脉动 / 英雄计时器 / 入场错峰
-   只用在视频面与直播状态上, 不污染表单/日志可读性
+   广播感组件: REC 脉动 / 英雄计时器 / 入场错峰
+   只用在状态标识与计时器上, 绝不盖在视频画面上 (不能糊住选手画面)
    ============================================================ */
-
-/* 扫描线纹理: 贴在视频/预览表面, 像 CRT 显像管 */
-.scanlines {
-  position: relative;
-}
-.scanlines::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.16) 3px,
-    rgba(0, 0, 0, 0) 4px
-  );
-  mix-blend-mode: multiply;
-  z-index: 2;
-}
-
-/* 扫描线掠过: 一道亮线周期性扫过直播画面 */
-.scan-sweep {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 3;
-}
-.scan-sweep::before {
-  content: "";
-  position: absolute;
-  left: 0; right: 0;
-  height: 30%;
-  background: linear-gradient(to bottom, transparent, rgba(61, 245, 138, 0.06), transparent);
-  animation: sweep 4.5s linear infinite;
-}
-@keyframes sweep {
-  0% { transform: translateY(-40%); }
-  100% { transform: translateY(340%); }
-}
-@media (prefers-reduced-motion: reduce) { .scan-sweep::before { animation: none; display: none; } }
 
 /* REC 点: 直播中的录制脉动, 比 live-tag 的点更醒目 */
 .rec-dot {

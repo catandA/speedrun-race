@@ -83,8 +83,7 @@ const elapsed = computed(() => {
       <span class="tag">720P · 30FPS</span>
     </div>
 
-    <div class="preview scanlines" :class="{ live: sharing }" ref="previewRef">
-      <div class="scan-sweep" v-if="sharing" aria-hidden="true"></div>
+    <div class="preview" :class="{ live: sharing }" ref="previewRef">
       <div v-if="!sharing" class="preview-empty">
         <span class="ph-t">NO SIGNAL</span>
         <span class="ph-s">点「开始直播」选择游戏窗口或显示器</span>
