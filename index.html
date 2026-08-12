@@ -100,6 +100,12 @@
           <option value="15552000" selected>180 天</option>
         </select>
       </label>
+      <label class="chk">签名格式
+        <select id="selFmt">
+          <option value="compress" selected>压缩 (控制台同款, 推荐)</option>
+          <option value="std">标准</option>
+        </select>
+      </label>
       <button class="btn" id="btnGen">生成链接</button>
       <button class="btn gray" id="btnCopy">复制全部</button>
     </div>
@@ -151,6 +157,24 @@
     var s = document.createElement('script');
     s.src = urls[i];
     s.onload = function () { log('✅ TRTC SDK v' + (window.TRTC ? (TRTC.version || '?') : '?') + ' 加载完成'); };
+    s.onerror = function () { load(i + 1); };
+    document.head.appendChild(s);
+  }
+  load(0);
+})();
+</script>
+<script>
+/* pako (纯 JS zlib) 加载 — 压缩/解压 UserSig 用, 与腾讯控制台同算法 */
+(function () {
+  var urls = [
+    'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js',
+    'https://fastly.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js',
+    'https://gcore.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'
+  ];
+  function load(i) {
+    if (i >= urls.length) { log('⚠ pako 加载失败, 压缩签名功能不可用'); return; }
+    var s = document.createElement('script');
+    s.src = urls[i];
     s.onerror = function () { load(i + 1); };
     document.head.appendChild(s);
   }
@@ -218,25 +242,38 @@ function fillForm() {
   $('chkJudge').checked = cfg.isJudge;
   $('inpJudgeKey').value = cfg.judgeKey;
 }
-function precheckUserSig(sig, uid, appid) {
-  var errs = [];
+function tryParseUserSig(sig) {
+  try { return JSON.parse(atob(sig)); } catch (e) { return null; }
+}
+async function inflateUserSig(sig) {
+  /* 控制台生成的压缩格式 (eJx 开头, zlib) — 优先 pako, 退回 DecompressionStream */
   try {
-    var p = JSON.parse(atob(sig));
-    if (p['TLS.identifier'] !== uid) {
-      errs.push('UserSig 绑定的用户ID是 "' + p['TLS.identifier'] + '", 与填写的 "' + uid + '" 不一致 — UserSig 与 userId 必须一一对应, 请用组织者工具按用户ID分别生成');
+    var bytes = Uint8Array.from(atob(sig), function (c) { return c.charCodeAt(0); });
+    if (window.pako) {
+      return JSON.parse(window.pako.inflate(bytes, { to: 'string' }));
     }
-    if (Number(p['TLS.sdkappid']) !== Number(appid)) {
-      errs.push('UserSig 里的 SDKAppID (' + p['TLS.sdkappid'] + ') 与页面 (' + appid + ') 不一致');
-    }
-    if (Number(p['TLS.time']) + Number(p['TLS.expire']) < Math.floor(Date.now() / 1000)) {
-      errs.push('UserSig 已过期, 请重新生成');
-    }
-  } catch (e) {
-    errs.push('UserSig 无法解析, 请重新生成 (检查是否复制完整)');
+    var ds = new DecompressionStream('deflate');
+    var stream = new Blob([bytes]).stream().pipeThrough(ds);
+    var buf = await new Response(stream).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buf));
+  } catch (e) { return null; }
+}
+async function precheckUserSig(sig, uid, appid) {
+  var p = tryParseUserSig(sig) || await inflateUserSig(sig);
+  if (!p) return ['UserSig 无法解析 (标准/压缩格式均失败), 请重新生成'];
+  var errs = [];
+  if (p['TLS.identifier'] !== uid) {
+    errs.push('UserSig 绑定的用户ID是 "' + p['TLS.identifier'] + '", 与填写的 "' + uid + '" 不一致 — UserSig 与 userId 必须一一对应, 请按用户ID分别生成');
+  }
+  if (Number(p['TLS.sdkappid']) !== Number(appid)) {
+    errs.push('UserSig 里的 SDKAppID (' + p['TLS.sdkappid'] + ') 与页面 (' + appid + ') 不一致');
+  }
+  if (Number(p['TLS.time']) + Number(p['TLS.expire']) < Math.floor(Date.now() / 1000)) {
+    errs.push('UserSig 已过期, 请重新生成');
   }
   return errs;
 }
-function join() {
+async function join() {
   cfg.room = $('inpRoom').value.trim() || DEFAULTS.room;
   cfg.userId = $('inpUid').value.trim();
   cfg.userSig = $('inpSig').value.trim();
@@ -250,7 +287,7 @@ function join() {
   if (!cfg.userId) { log('⚠ 请填写用户ID'); return; }
   if (!cfg.userSig) { log('⚠ 请填写 UserSig'); return; }
   /* 本地预检 UserSig: 解出 identifier/sdkappid/有效期, 提前拦截最常见的错误 */
-  var pre = precheckUserSig(cfg.userSig, cfg.userId, cfg.sdkAppId);
+  var pre = await precheckUserSig(cfg.userSig, cfg.userId, cfg.sdkAppId);
   if (pre.length) {
     pre.forEach(function (m) { log('⚠ ' + m); });
     return;
@@ -536,6 +573,20 @@ async function genUserSig(sdkAppId, key, userId, expire) {
   };
   return btoa(JSON.stringify(payload));
 }
+async function compressUserSig(stdSig) {
+  /* 控制台同款: 压缩的是 JSON 文本 (不是 base64 串), zlib 包裹 — 优先 pako, 退回 CompressionStream; 失败退回标准格式 */
+  try {
+    var json = JSON.stringify(JSON.parse(atob(stdSig)));
+    var bytes = new TextEncoder().encode(json);
+    if (window.pako) {
+      return btoa(String.fromCharCode.apply(null, window.pako.deflate(bytes)));
+    }
+    var cs = new CompressionStream('deflate');
+    var stream = new Blob([bytes]).stream().pipeThrough(cs);
+    var buf = await new Response(stream).arrayBuffer();
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+  } catch (e) { return stdSig; }
+}
 function baseUrl() { return location.origin + location.pathname; }
 $('btnGen').onclick = async function () {
   var key = $('inpKey').value.trim();
@@ -544,6 +595,7 @@ $('btnGen').onclick = async function () {
   var users = $('inpUsers').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
   if (!users.length) { log('⚠ 请填写用户ID'); return; }
   var expire = Number($('selExpire').value);
+  var fmt = ($('selFmt') && $('selFmt').value) || 'compress';
   var room = ($('inpRoom').value.trim() || DEFAULTS.room);
   var jkey = ($('inpJudgeKeyTool').value.trim() || JUDGE_KEY);
   if (jkey !== JUDGE_KEY) {
@@ -553,6 +605,7 @@ $('btnGen').onclick = async function () {
   for (var i = 0; i < users.length; i++) {
     var uid = users[i];
     var sig = await genUserSig(cfg.sdkAppId, key, uid, expire);
+    if (fmt === 'compress') sig = await compressUserSig(sig);
     var extra = (uid.toLowerCase().indexOf('judge') >= 0) ? '&judge=1&judgeKey=' + encodeURIComponent(jkey) : '&auto=1';
     lines.push(baseUrl() + '?room=' + encodeURIComponent(room) + '&userId=' + encodeURIComponent(uid) + '&userSig=' + encodeURIComponent(sig) + extra);
   }
@@ -592,7 +645,7 @@ $('autoplayOverlay').onclick = function () {
   try { if (trtc) trtc.callExperimentalAPI && trtc.callExperimentalAPI('resumeAudio'); } catch (x) {}
 };
 /* URL 参数齐了就自动进房 */
-if (cfg.userId && cfg.userSig) { join(); }
+if (cfg.userId && cfg.userSig) { join().catch(function (e) { log('⚠ 进房流程异常: ' + (e && e.message ? e.message : e)); }); }
 </script>
 </body>
 </html>
