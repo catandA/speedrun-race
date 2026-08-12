@@ -6,10 +6,10 @@ const props = defineProps({ small: String, autoShare: Boolean })
 const { sharing, micOn, compatMode, startShare, stopShare, toggleMic, toggleCompat } = useScreenShare()
 
 const previewRef = ref(null)
-const use1080 = ref(true)
 
 async function onShare() {
-  await startShare({ small: props.small }, previewRef.value, use1080.value)
+  // 固定 720p 30fps (省时长包; 高清存档交给选手本地 OBS)
+  await startShare({ small: props.small }, previewRef.value, false)
 }
 
 // 进房后若 URL 带 auto=1, 延迟一点自动弹屏幕分享
@@ -30,9 +30,7 @@ onMounted(() => {
       <button class="btn ghost" :class="{ active: compatMode }" @click="toggleCompat" title="主流方案失败时的备选">
         {{ compatMode ? '回到主流模式' : '兼容模式(辅流)' }}
       </button>
-      <label class="chk">
-        <input type="checkbox" v-model="use1080"> 推 1080p (默认; 720p 更省时长, 存档请用本地OBS)
-      </label>
+      <span class="badge">720p · 30fps</span>
     </div>
     <div class="preview" ref="previewRef"></div>
     <p class="hint">
@@ -49,8 +47,14 @@ onMounted(() => {
 .panel-head { margin-bottom: 12px; }
 .panel-head h2 { font-size: 15px; font-weight: 600; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.chk { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; color: var(--fg-dim); cursor: pointer; }
-.chk input { width: auto; }
+.badge {
+  font-size: 12px;
+  color: var(--fg-dim);
+  background: var(--panel-2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line-soft);
+}
 .preview {
   width: 100%;
   max-width: 560px;
