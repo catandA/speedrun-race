@@ -28,14 +28,17 @@ python gen_sig.py --sdkappid 1600156752 --key 你的密钥 --batch users.txt
 ```
 把密钥填进来(密钥只在你自己电脑上运行, 不要发给任何人)。
 
-## 三、部署页面(需要 https, 推荐腾讯云 COS)
+## 三、部署页面(需要 https)
 
-1. 控制台 → 对象存储 COS → 创建存储桶(地域选离选手近的, 如 ap-guangzhou)
-2. 权限: 公有读(回放/页面要能访问)
-3. 上传 `index.html`
-4. 访问地址: `https://<bucket名>.cos.<地域>.myqcloud.com/index.html`(COS 默认域名免备案)
+**已上线 GitHub Pages: `https://catanda.github.io/speedrun-race/`**(仓库 `catandA/speedrun-race`)
 
-> 本地测试: `python -m http.server 8000` 然后开 `http://localhost:8000`(localhost 属于安全上下文, 可以测摄像头/屏幕分享)。
+> ⚠️ 国内访问 github.io 可能间歇性打不开,比赛前务必实测;备用方案:腾讯云 COS 默认域名(免备案):
+> 1. 控制台 → 对象存储 COS → 创建存储桶(地域选广州/上海)
+> 2. 权限: 公有读
+> 3. 上传 `index.html`
+> 4. 访问 `https://<桶名>.cos.<地域>.myqcloud.com/index.html`
+
+本地测试: `python -m http.server 8000` 然后开 `http://localhost:8000`(localhost 属于安全上下文, 可以测摄像头/屏幕分享)。
 
 ## 四、发链接
 
