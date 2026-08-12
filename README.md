@@ -8,6 +8,7 @@
 |---|---|
 | `index.html` | 比赛页面(选手端 + 裁判端合一) |
 | `gen_sig.py` | UserSig 批量生成脚本(纯标准库) |
+| `verify.js` | 页面自检脚本(零依赖, `node verify.js index.html`, 改页面后跑一遍) |
 
 ## 一、控制台一次性配置(已完成一半)
 
