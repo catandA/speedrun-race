@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>速通比赛直播间</title>
+<style>
+  :root { --bg:#0e1116; --panel:#161b24; --line:#2a3242; --fg:#dbe3ee; --dim:#8b98ab; --acc:#3b82f6; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  header { display:flex; align-items:center; gap:14px; padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:17px; font-weight:600; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--dim); display:inline-block; }
+  .dot.on { background:var(--ok); } .dot.off { background:var(--bad); } .dot.mid { background:var(--warn); }
+  .tag { font-size:12px; color:var(--dim); }
+  #status { font-size:13px; color:var(--dim); }
+  .btn { background:var(--acc); color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:14px; cursor:pointer; }
+  .btn:hover { filter:brightness(1.1); }
+  .btn.gray { background:#3a4356; } .btn.green { background:var(--ok); } .btn.red { background:var(--bad); }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .btn.sm { padding:4px 10px; font-size:12px; border-radius:5px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin:14px 18px; }
+  .panel h2 { font-size:15px; margin-bottom:12px; color:#fff; }
+  label { display:block; font-size:13px; color:var(--dim); margin:10px 0 4px; }
+  input[type=text], textarea { width:100%; max-width:560px; background:#0d1117; border:1px solid var(--line); color:var(--fg); border-radius:6px; padding:8px 10px; font-size:14px; }
+  textarea { font-family:monospace; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  #grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin:14px 18px; }
+  .tile { position:relative; background:#000; border:1px solid var(--line); border-radius:8px; overflow:hidden; aspect-ratio:16/9; }
+  .tile .video { width:100%; height:100%; }
+  .tile .video video { width:100%; height:100%; object-fit:contain; }
+  .tile .meta { position:absolute; left:0; right:0; bottom:0; display:flex; align-items:center; gap:8px; padding:4px 8px; background:linear-gradient(transparent,rgba(0,0,0,.75)); font-size:12px; }
+  .tile .meta .name { font-weight:600; }
+  .tile .meta .st { color:var(--dim); font-size:11px; }
+  .tile.waiting { display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:13px; }
+  .tile.focus { border-color:var(--acc); box-shadow:0 0 0 2px rgba(59,130,246,.35); }
+  .tile.full { position:fixed; inset:0; z-index:50; border-radius:0; }
+  .tile .muteBtn { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.55); border:none; color:#fff; border-radius:5px; padding:3px 8px; font-size:11px; cursor:pointer; z-index:3; }
+  #log { margin:0 18px 18px; font-size:12px; color:var(--dim); white-space:pre-wrap; max-height:160px; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  #preview { width:100%; max-width:560px; aspect-ratio:16/9; background:#000; border:1px solid var(--line); border-radius:8px; margin-top:10px; }
+  #preview video { width:100%; height:100%; object-fit:contain; }
+  .hint { font-size:12px; color:var(--dim); margin-top:8px; line-height:1.7; }
+  .warn-box { border:1px solid var(--warn); color:var(--warn); border-radius:8px; padding:8px 12px; font-size:12px; margin-top:10px; }
+  #autoplayOverlay { position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:99; font-size:16px; cursor:pointer; }
+  select { background:#0d1117; border:1px solid var(--line); color:var(--fg); border-radius:6px; padding:7px 10px; font-size:13px; }
+  .chk { display:inline-flex; gap:6px; align-items:center; font-size:13px; color:var(--fg); margin-right:14px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎮 速通比赛直播间</h1>
+  <span class="tag" id="roomTag">房间: -</span>
+  <span class="tag" id="roleTag">角色: -</span>
+  <span class="dot" id="connDot"></span><span id="status">未连接</span>
+  <span style="flex:1"></span>
+  <button class="btn gray sm" id="btnLeave" style="display:none">退出房间</button>
+</header>
+
+<!-- 进房表单 -->
+<section class="panel" id="formPanel">
+  <h2>进入比赛房间</h2>
+  <label>房间号 (所有选手和裁判填同一个)</label>
+  <input type="text" id="inpRoom" placeholder="例如 race1">
+  <label>用户ID (每个选手/裁判唯一, 例如 player1 / judge)</label>
+  <input type="text" id="inpUid" placeholder="player1">
+  <label>UserSig (控制台「开发辅助工具→UserSig生成&校验」生成, 或本地脚本批量生成)</label>
+  <textarea id="inpSig" rows="2" placeholder="粘贴 UserSig"></textarea>
+  <div class="row">
+    <label class="chk"><input type="checkbox" id="chkJudge"> 我是裁判 (看多路画面)</label>
+    <button class="btn" id="btnJoin">进房</button>
+  </div>
+  <div class="hint">
+    也可用带参数链接一键进房:<br>
+    选手: <code>index.html?room=race1&userId=player1&userSig=xxxx</code><br>
+    裁判: <code>index.html?room=race1&userId=judge&userSig=xxxx&judge=1</code><br>
+    选手可选 <code>&auto=1</code> 进房后自动弹出屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)
+  </div>
+</section>
+
+<!-- 选手面板 -->
+<section class="panel" id="playerPanel" style="display:none">
+  <h2>选手控制台</h2>
+  <div class="row">
+    <button class="btn green" id="btnShare">📺 开始直播 (分享屏幕)</button>
+    <button class="btn red" id="btnStopShare" style="display:none">停止直播</button>
+    <button class="btn gray" id="btnMic">🎙 开麦</button>
+    <button class="btn gray" id="btnCompat" title="主流方案失败时的备选">兼容模式(辅流)</button>
+    <label class="chk"><input type="checkbox" id="chk1080" checked> 推 1080p (默认; 720p 更省时长, 存档请用本地OBS)</label>
+  </div>
+  <div id="preview"></div>
+  <div class="hint" id="playerHint"></div>
+  <div class="warn-box" id="compatWarn" style="display:none">
+    兼容模式: 使用官方标准屏幕分享通道 (辅流), 没有小流, 裁判全览时流量更高。若主流模式正常请勿使用。
+  </div>
+</section>
+
+<!-- 裁判面板 -->
+<section class="panel" id="judgePanel" style="display:none">
+  <h2>裁判控制台
+    <button class="btn sm gray" id="btnMode" style="float:right">全览模式(拉全部·费时长) → 专注</button>
+  </h2>
+  <div class="hint" id="judgeHint"></div>
+</section>
+
+<div id="grid"></div>
+
+<div id="autoplayOverlay">🔊 点击任意处启用声音</div>
+<div id="log"></div>
+
+<script>
+/* TRTC Web SDK v5 加载 (jsdelivr 多镜像回退) */
+(function () {
+  var urls = [
+    'https://cdn.jsdelivr.net/npm/trtc-sdk-v5@5.19.1/trtc.min.js',
+    'https://fastly.jsdelivr.net/npm/trtc-sdk-v5@5.19.1/trtc.min.js',
+    'https://gcore.jsdelivr.net/npm/trtc-sdk-v5@5.19.1/trtc.min.js'
+  ];
+  function load(i) {
+    if (i >= urls.length) { log('❌ TRTC SDK 加载失败, 请检查网络后刷新'); return; }
+    var s = document.createElement('script');
+    s.src = urls[i];
+    s.onload = function () { log('✅ TRTC SDK v' + (window.TRTC ? (TRTC.version || '?') : '?') + ' 加载完成'); };
+    s.onerror = function () { load(i + 1); };
+    document.head.appendChild(s);
+  }
+  load(0);
+})();
+</script>
+
+<script>
+'use strict';
+/* ========== 全局状态 ========== */
+var DEFAULTS = { sdkAppId: 1600156752, room: 'race1' };
+var qs = new URLSearchParams(location.search);
+var cfg = {
+  sdkAppId: Number(qs.get('sdkAppId') || DEFAULTS.sdkAppId),
+  room: (qs.get('room') || DEFAULTS.room).trim(),
+  userId: (qs.get('userId') || '').trim(),
+  userSig: (qs.get('userSig') || '').trim(),
+  isJudge: qs.get('judge') === '1',
+  autoShare: qs.get('auto') === '1',
+  small: qs.get('small') || '120p'
+};
+var trtc = null;
+var joined = false;
+var sharing = false;
+var micOn = false;
+var compatMode = false;
+var screenTrack = null;
+var judgeMode = 'all';       // all=全览(小流全拉) / focus=专注(只拉当前)
+var focusedUid = null;
+var tiles = new Map();       // userId -> tile 对象
+var EV = window.TRTC ? TRTC.EVENT : {};
+
+/* ========== 工具 ========== */
+function log(msg) {
+  var el = document.getElementById('log');
+  var t = new Date().toTimeString().slice(0, 8);
+  el.textContent += '[' + t + '] ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function $(id) { return document.getElementById(id); }
+function setStatus(txt, cls) {
+  $('status').textContent = txt;
+  $('connDot').className = 'dot ' + (cls || '');
+}
+function ensureTrtcReady(cb) {
+  if (window.TRTC) return cb();
+  var n = 0;
+  var timer = setInterval(function () {
+    if (window.TRTC) { clearInterval(timer); EV = TRTC.EVENT; cb(); }
+    else if (++n > 100) { clearInterval(timer); log('❌ SDK 未就绪'); }
+  }, 200);
+}
+
+/* ========== 进房 ========== */
+function fillForm() {
+  $('inpRoom').value = cfg.room;
+  $('inpUid').value = cfg.userId;
+  $('inpSig').value = cfg.userSig;
+  $('chkJudge').checked = cfg.isJudge;
+}
+function join() {
+  cfg.room = $('inpRoom').value.trim() || DEFAULTS.room;
+  cfg.userId = $('inpUid').value.trim();
+  cfg.userSig = $('inpSig').value.trim();
+  cfg.isJudge = $('chkJudge').checked;
+  if (!cfg.userId) { log('⚠ 请填写用户ID'); return; }
+  if (!cfg.userSig) { log('⚠ 请填写 UserSig'); return; }
+  ensureTrtcReady(function () {
+    if (!TRTC.isSupported()) { log('❌ 当前浏览器不支持 WebRTC/TRTC, 请使用最新版 Chrome 或 Edge'); return; }
+    doJoin();
+  });
+}
+async function doJoin() {
+  try {
+    trtc = TRTC.create();
+    log('进房: 房间=' + cfg.room + ' 用户=' + cfg.userId + (cfg.isJudge ? ' (裁判)' : ''));
+    await trtc.enterRoom({
+      scene: 'rtc',
+      sdkAppId: cfg.sdkAppId,
+      userId: cfg.userId,
+      userSig: cfg.userSig,
+      strRoomId: cfg.room
+    });
+    joined = true;
+    bindEvents();
+    $('formPanel').style.display = 'none';
+    $('btnLeave').style.display = '';
+    $('roomTag').textContent = '房间: ' + cfg.room;
+    $('roleTag').textContent = '角色: ' + (cfg.isJudge ? '裁判' : '选手') + ' (' + cfg.userId + ')';
+    if (cfg.isJudge) {
+      $('judgePanel').style.display = '';
+      updateJudgeHint();
+      setStatus('已进房 · 等待选手推流', 'mid');
+    } else {
+      $('playerPanel').style.display = '';
+      $('playerHint').textContent = '点「开始直播」→ 选择游戏窗口或显示器 → 勾选"分享音频" (Chrome Windows 支持系统声音)。' +
+        '直播内容将作为主流推送(支持小流), 裁判多格查看走小流省流量, 单独查看切大流。';
+      setStatus('已进房', 'on');
+      if (cfg.autoShare) setTimeout(startShare, 300);
+    }
+  } catch (e) {
+    log('❌ 进房失败: ' + (e && e.message ? e.message : e));
+    setStatus('进房失败', 'off');
+  }
+}
+
+/* ========== 事件 ========== */
+function bindEvents() {
+  var E = TRTC.EVENT;
+  if (E.CONNECTION_STATE_CHANGED) trtc.on(E.CONNECTION_STATE_CHANGED, function (e) {
+    var s = (e && e.curState) || '';
+    var map = { DISCONNECTED: ['已断开', 'off'], CONNECTING: ['连接中…', 'mid'], CONNECTED: ['已连接', 'on'], RECONNECTING: ['重连中…', 'warn'], RECONNECTED: ['已重连', 'on'] };
+    var m = map[s] || [s, 'mid'];
+    setStatus(m[0], m[1]);
+    if (s === 'RECONNECTED') log('✅ 已自动重连');
+  });
+  if (E.ERROR) trtc.on(E.ERROR, function (e) { log('⚠ 错误: ' + (e && (e.message || e.code) ? (e.message || e.code) : JSON.stringify(e))); });
+  if (E.AUTOPLAY_FAILED) trtc.on(E.AUTOPLAY_FAILED, function () { $('autoplayOverlay').style.display = 'flex'; });
+  if (E.KICKED_OUT) trtc.on(E.KICKED_OUT, function () { log('⚠ 被踢出房间 (用户ID重复?)'); setStatus('被踢出', 'off'); });
+  if (!cfg.isJudge) {
+    if (E.SCREEN_SHARE_STOPPED) trtc.on(E.SCREEN_SHARE_STOPPED, function () {
+      sharing = false; $('btnShare').style.display = ''; $('btnStopShare').style.display = 'none';
+      log('屏幕分享已停止'); setStatus('已进房', 'on');
+    });
+    return;
+  }
+  /* ---- 裁判: 远端用户/流管理 ---- */
+  if (E.REMOTE_USER_ENTER) trtc.on(E.REMOTE_USER_ENTER, function (e) { ensureTile(e.userId); });
+  if (E.REMOTE_USER_EXIT) trtc.on(E.REMOTE_USER_EXIT, function (e) { setTile(e.userId, 'offline'); });
+  if (E.REMOTE_VIDEO_AVAILABLE) trtc.on(E.REMOTE_VIDEO_AVAILABLE, function (e) {
+    var t = ensureTile(e.userId);
+    t.types[e.streamType] = true;
+    t.streamType = preferType(t);
+    updateTileUI(t);
+    if (judgeMode === 'all' || focusedUid === e.userId) subscribeTile(t);
+  });
+  if (E.REMOTE_VIDEO_UNAVAILABLE) trtc.on(E.REMOTE_VIDEO_UNAVAILABLE, function (e) {
+    var t = tiles.get(e.userId);
+    if (!t) return;
+    delete t.types[e.streamType];
+    if (t.playing[e.streamType]) { try { trtc.stopRemoteVideo({ userId: e.userId, streamType: e.streamType }); } catch (x) {} t.playing[e.streamType] = false; }
+    t.streamType = preferType(t);
+    updateTileUI(t);
+  });
+  if (E.REMOTE_AUDIO_AVAILABLE) trtc.on(E.REMOTE_AUDIO_AVAILABLE, function (e) { var t = tiles.get(e.userId); if (t) { t.audio = true; updateTileUI(t); } });
+  if (E.REMOTE_AUDIO_UNAVAILABLE) trtc.on(E.REMOTE_AUDIO_UNAVAILABLE, function (e) { var t = tiles.get(e.userId); if (t) { t.audio = false; updateTileUI(t); } });
+}
+function preferType(t) {
+  if (t.types[TRTC.TYPE.STREAM_TYPE_MAIN]) return TRTC.TYPE.STREAM_TYPE_MAIN;
+  if (t.types[TRTC.TYPE.STREAM_TYPE_SUB]) return TRTC.TYPE.STREAM_TYPE_SUB;
+  return null;
+}
+
+/* ========== 选手: 直播 ========== */
+async function startShare() {
+  if (!joined) return;
+  var use1080 = $('chk1080') && $('chk1080').checked;
+  var vc = use1080 ? { frameRate: 30 } : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: 30 };
+  try {
+    if (compatMode) {
+      await trtc.startScreenShare({ view: $('preview'), option: { systemAudio: true } });
+      log('✅ 已用兼容模式(辅流)开播');
+    } else {
+      /* 主流方案: 屏幕轨道塞进主流 + 开小流 */
+      var ds = await navigator.mediaDevices.getDisplayMedia({ video: vc, audio: true });
+      screenTrack = ds.getVideoTracks()[0];
+      var aTrack = ds.getAudioTracks()[0] || null;
+      ds.getVideoTracks().forEach(function (tr) { tr.addEventListener('ended', function () { onScreenEnded(); }); });
+      try {
+        await trtc.startLocalVideo({ view: $('preview'), option: { videoTrack: screenTrack, small: cfg.small } });
+      } catch (e1) {
+        log('⚠ 直接注入屏幕轨道失败, 走降级: ' + e1.message);
+        await trtc.startLocalVideo({ view: $('preview') });
+        await trtc.updateLocalVideo({ option: { videoTrack: screenTrack, small: cfg.small } });
+      }
+      if (aTrack) {
+        try { await trtc.updateLocalAudio({ option: { audioTrack: aTrack } }); log('✅ 系统声音已接入主流'); }
+        catch (e2) { log('⚠ 系统声音接入失败, 可点「开麦」用麦克风: ' + e2.message); }
+      }
+      log('✅ 已开播: 屏幕=主流' + (use1080 ? ' 1080p' : ' 720p') + ', 小流=' + cfg.small);
+    }
+    sharing = true;
+    $('btnShare').style.display = 'none';
+    $('btnStopShare').style.display = '';
+    setStatus('直播中', 'on');
+  } catch (e) {
+    log('❌ 开播失败: ' + (e && e.message ? e.message : e));
+  }
+}
+async function stopShare() {
+  try {
+    if (compatMode) await trtc.stopScreenShare();
+    else { if (screenTrack) { screenTrack.stop(); screenTrack = null; } await trtc.stopLocalVideo(); await trtc.stopLocalAudio(); }
+    sharing = false;
+    $('btnShare').style.display = '';
+    $('btnStopShare').style.display = 'none';
+    setStatus('已进房', 'on');
+  } catch (e) { log('⚠ 停止失败: ' + e.message); }
+}
+function onScreenEnded() {
+  if (sharing) { log('⚠ 屏幕分享被系统结束 (可能点了"停止共享")'); stopShare(); }
+}
+async function toggleMic() {
+  if (!joined) return;
+  try {
+    if (!micOn) { await trtc.startLocalAudio(); micOn = true; $('btnMic').textContent = '🎙 闭麦'; log('麦克风已开'); }
+    else { await trtc.stopLocalAudio(); micOn = false; $('btnMic').textContent = '🎙 开麦'; log('麦克风已关'); }
+  } catch (e) { log('⚠ 麦克风失败: ' + e.message); }
+}
+function toggleCompat() {
+  compatMode = !compatMode;
+  $('btnCompat').textContent = compatMode ? '回到主流模式' : '兼容模式(辅流)';
+  $('compatWarn').style.display = compatMode ? '' : 'none';
+  log(compatMode ? '已切换兼容模式(辅流)' : '已切换主流模式');
+}
+
+/* ========== 裁判: 格子 ========== */
+function ensureTile(uid) {
+  var t = tiles.get(uid);
+  if (t) return t;
+  t = {
+    uid: uid,
+    el: document.createElement('div'),
+    videoEl: document.createElement('div'),
+    nameEl: document.createElement('span'),
+    stEl: document.createElement('span'),
+    types: {},
+    playing: {},
+    streamType: null,
+    audio: false,
+    muted: false,
+    status: 'waiting'
+  };
+  t.el.className = 'tile waiting';
+  t.el.innerHTML = '<span>' + uid + '</span>';
+  var meta = document.createElement('div');
+  meta.className = 'meta';
+  t.nameEl.className = 'name'; t.nameEl.textContent = uid;
+  t.stEl.className = 'st'; t.stEl.textContent = '等待推流';
+  meta.appendChild(t.nameEl); meta.appendChild(t.stEl);
+  t.el.appendChild(meta);
+  var mute = document.createElement('button');
+  mute.className = 'muteBtn'; mute.textContent = '🔇';
+  mute.onclick = function (e) { e.stopPropagation(); toggleMute(t); };
+  t.el.appendChild(mute);
+  t.videoEl.className = 'video';
+  t.el.appendChild(t.videoEl);
+  t.el.onclick = function () { tileClick(t); };
+  $('grid').appendChild(t.el);
+  tiles.set(uid, t);
+  return t;
+}
+function setTile(uid, status) {
+  var t = tiles.get(uid);
+  if (!t) return;
+  t.status = status;
+  if (status === 'offline') {
+    try { if (t.streamType && t.playing[t.streamType]) trtc.stopRemoteVideo({ userId: uid, streamType: t.streamType }); } catch (x) {}
+    t.el.className = 'tile waiting';
+    t.el.innerHTML = '<span>' + uid + ' (已离开)</span>';
+    t.videoEl = t.el.querySelector('.video') || t.el.appendChild(document.createElement('div'));
+  }
+}
+function updateTileUI(t) {
+  var st;
+  if (t.status === 'offline') st = '离线';
+  else if (t.streamType === TRTC.TYPE.STREAM_TYPE_MAIN) st = (t.playing[t.streamType] && judgeMode === 'focus' && focusedUid === t.uid) ? '大流' : '小流';
+  else if (t.streamType) st = '屏幕(辅流)';
+  else st = '等待推流';
+  t.stEl.textContent = st + (t.audio ? ' · 有声音' : '');
+}
+function shouldSubscribe(t) {
+  if (!t.streamType) return false;
+  if (judgeMode === 'all') return true;
+  return focusedUid === t.uid;
+}
+function subscribeTile(t) {
+  if (!t.streamType) return;
+  var small = !(judgeMode === 'focus' && focusedUid === t.uid);
+  if (!t.playing[t.streamType]) {
+    trtc.startRemoteVideo({ userId: t.uid, streamType: t.streamType, view: t.videoEl, option: { small: small } })
+      .then(function () { t.playing[t.streamType] = true; t.el.classList.remove('waiting'); updateTileUI(t); })
+      .catch(function (e) { log('⚠ 拉流失败 ' + t.uid + ': ' + e.message); });
+  }
+}
+function unsubscribeTile(t) {
+  if (t.streamType && t.playing[t.streamType]) {
+    try { trtc.stopRemoteVideo({ userId: t.uid, streamType: t.streamType }); } catch (x) {}
+    t.playing[t.streamType] = false;
+    t.el.classList.add('waiting');
+    updateTileUI(t);
+  }
+}
+function tileClick(t) {
+  if (judgeMode === 'all') {
+    /* 全览模式: 点击单看(全屏) */
+    var isFull = t.el.classList.contains('full');
+    tiles.forEach(function (x) { x.el.classList.remove('full'); x.el.style.display = ''; });
+    if (!isFull) { t.el.classList.add('full'); tiles.forEach(function (x) { if (x !== t) x.el.style.display = 'none'; }); }
+  } else {
+    /* 专注模式: 切换关注 */
+    var prev = focusedUid;
+    focusedUid = t.uid;
+    if (prev && tiles.has(prev)) unsubscribeTile(tiles.get(prev));
+    subscribeTile(t);
+    tiles.forEach(function (x) { x.el.classList.toggle('focus', x.uid === t.uid); });
+    updateJudgeHint();
+  }
+}
+function toggleMute(t) {
+  t.muted = !t.muted;
+  var v = t.videoEl && t.videoEl.querySelector('video');
+  if (v) v.muted = t.muted;
+  try { if (TRTC) trtc.muteRemoteAudio({ userId: t.uid, muted: t.muted }); } catch (x) {}
+  t.el.querySelector('.muteBtn').textContent = t.muted ? '🔇已静音' : '🔇';
+}
+function toggleJudgeMode() {
+  judgeMode = judgeMode === 'all' ? 'focus' : 'all';
+  $('btnMode').textContent = judgeMode === 'all' ? '全览模式(拉全部·费时长) → 专注' : '专注模式(只拉当前·省时长) → 全览';
+  focusedUid = null;
+  tiles.forEach(function (t) { t.el.classList.remove('focus'); if (t.streamType) { if (judgeMode === 'all') subscribeTile(t); else unsubscribeTile(t); } });
+  updateJudgeHint();
+}
+function updateJudgeHint() {
+  var modeTxt = judgeMode === 'all'
+    ? '全览模式: 拉取全部选手画面(小流, 节省流量), 点格子全屏单看'
+    : '专注模式: 只拉取当前关注的选手(大流, 最清晰), 点格子切换关注 — 最省时长包';
+  $('judgeHint').textContent = modeTxt + '。 计费按"实际订阅的路数和分辨率"算, 全览拉 8 路小流(标清档) ≈ 专注拉 1 路大流(高清档)。';
+}
+
+/* ========== 退出 ========== */
+async function leave() {
+  try { if (trtc) await trtc.leaveRoom(); } catch (x) {}
+  joined = false; setStatus('未连接', '');
+  location.reload();
+}
+
+/* ========== 初始化 ========== */
+fillForm();
+$('btnJoin').onclick = join;
+$('btnLeave').onclick = leave;
+$('btnShare').onclick = startShare;
+$('btnStopShare').onclick = stopShare;
+$('btnMic').onclick = toggleMic;
+$('btnCompat').onclick = toggleCompat;
+$('btnMode').onclick = toggleJudgeMode;
+$('autoplayOverlay').onclick = function () {
+  this.style.display = 'none';
+  try { if (trtc) trtc.callExperimentalAPI && trtc.callExperimentalAPI('resumeAudio'); } catch (x) {}
+};
+/* URL 参数齐了就自动进房 */
+if (cfg.userId && cfg.userSig) { join(); }
+</script>
+</body>
+</html>
