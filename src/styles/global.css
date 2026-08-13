@@ -51,6 +51,29 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+
+  /* —— 4pt 间距尺度 (spatial-design: 4/8/12/16/24/32/48/64) —— */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* —— z-index 语义阶梯 (sticky → tile-fullscreen → overlay → modal) —— */
+  --z-base: 1;
+  --z-sidebar: 20;
+  --z-sticky: 30;
+  --z-tile-fullscreen: 50;
+  --z-overlay: 90;
+  --z-modal: 100;
+
+  /* —— 工作区布局 (裁判侧栏 + 主视频区) —— */
+  --sidebar-w: 300px;
+  --workspace-max: 1480px;
+  --topbar-h: 52px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -301,4 +324,62 @@ label {
 }
 @media (prefers-reduced-motion: reduce) {
   .panel, .stagger { animation: none; }
+}
+
+/* ============================================================
+   工作区布局: 裁判 = 侧栏 + 主视频区
+   从"垂直堆叠表单页"转向"分主次控制台"
+   - 侧栏+主区是二维 → Grid; 内部一维 → Flex
+   - 间距走 --space-* 尺度, 不再现编值
+   - viewport 断点仅用于页面级结构 (spatial-design: 组件级用 container)
+   ============================================================ */
+.workspace {
+  max-width: var(--workspace-max);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-xl);
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.main-area { min-width: 0; }   /* minmax(0) 让主区可缩, 防视频溢出撑爆侧栏 */
+
+/* 侧栏: sticky 钉在顶栏下方, 自身高度不超视口, 内部独立滚 */
+.sidebar {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-sm));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-height: calc(100vh - var(--topbar-h) - var(--space-xl));
+}
+
+/* 窄屏: 侧栏退回顶部条, 主区吃满 */
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+  .sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* —— 侧栏块: JudgePanel/LogPanel 在侧栏内的统一容器 —— */
+.sidebar-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--go);
+  border-radius: var(--radius);
+  padding: var(--space-md) var(--space-lg);
+}
+.sidebar-block .blk-head {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.sidebar-block .blk-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+  color: var(--fg-dim); text-transform: uppercase;
 }

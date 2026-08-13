@@ -65,46 +65,45 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
         </div>
       </div>
       <span class="tag" v-if="!sharing">未开播</span>
+      <span class="live-tag go" v-else><span class="dot"></span>直播中</span>
     </header>
 
-    <!-- 英雄计时器: 速通直播的灵魂, 直播中才显示 -->
-    <div class="timer-hero" v-if="sharing">
-      <div class="th-left">
-        <span class="rec-dot" aria-hidden="true"></span>
-        <span class="th-live">LIVE</span>
-        <span class="th-tag">REC</span>
-      </div>
-      <div class="th-time hero-timer">{{ elapsed }}</div>
-      <div class="th-right">
-        <span class="th-unit">ELAPSED</span>
-      </div>
-    </div>
-
-    <!-- 推流实时参数: 上行网络质量/丢包/RTT (NETWORK_QUALITY 每2秒刷新) -->
-    <div class="uplink-bar" :class="{ bad: uplinkBad }" v-if="uplinkText">{{ uplinkText }}</div>
-
-    <div class="actions">
-      <button v-if="!sharing" class="btn green" @click="onShare">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        开始直播
-      </button>
-      <button v-else class="btn red" @click="stopShare">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
-        停止直播
-      </button>
-      <button class="btn ghost" :class="{ active: micOn }" @click="toggleMic">
-        {{ micOn ? '闭麦' : '开麦' }}
-      </button>
-      <button class="btn ghost" :class="{ active: compatMode }" @click="toggleCompat" title="主流方案失败时的备选">
-        {{ compatMode ? '回到主流' : '兼容模式' }}
-      </button>
-      <span class="tag">720P · 30FPS</span>
-    </div>
-
+    <!-- 预览: 首屏主区, 选手最该盯的画面 -->
     <div class="preview" :class="{ live: sharing }" ref="previewRef">
       <div v-if="!sharing" class="preview-empty">
         <span class="ph-t">NO SIGNAL</span>
         <span class="ph-s">点「开始直播」选择游戏窗口或显示器</span>
+      </div>
+    </div>
+
+    <!-- 控制条: 计时器 + 上行参数 + 按钮, 预览下方紧凑横排 -->
+    <div class="ctrl-bar">
+      <template v-if="sharing">
+        <div class="timer-row">
+          <span class="rec-dot" aria-hidden="true"></span>
+          <span class="live-label">LIVE</span>
+          <span class="th-time hero-timer">{{ elapsed }}</span>
+          <span class="th-unit">ELAPSED</span>
+        </div>
+        <div class="uplink-bar" :class="{ bad: uplinkBad }" v-if="uplinkText">{{ uplinkText }}</div>
+      </template>
+
+      <div class="actions">
+        <button v-if="!sharing" class="btn green" @click="onShare">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          开始直播
+        </button>
+        <button v-else class="btn red" @click="stopShare">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+          停止直播
+        </button>
+        <button class="btn ghost" :class="{ active: micOn }" @click="toggleMic">
+          {{ micOn ? '闭麦' : '开麦' }}
+        </button>
+        <button class="btn ghost" :class="{ active: compatMode }" @click="toggleCompat" title="主流方案失败时的备选">
+          {{ compatMode ? '回到主流' : '兼容模式' }}
+        </button>
+        <span class="tag spec">720P · 30FPS</span>
       </div>
     </div>
 
@@ -119,73 +118,23 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
 </template>
 
 <style scoped>
-.bc-panel { max-width: 680px; padding: 20px 22px; }
+.bc-panel { max-width: 720px; padding: var(--space-lg) var(--space-xl); }
 
-.bc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; justify-content: space-between; }
-.title-wrap { display: flex; align-items: center; gap: 10px; }
+.bc-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); justify-content: space-between; }
+.title-wrap { display: flex; align-items: center; gap: var(--space-sm); }
 .mark {
   display: grid; place-items: center;
-  width: 32px; height: 32px;
+  width: 28px; height: 28px;
   background: var(--go); color: #04140a;
-  font-weight: 800; font-size: 12px;
+  font-weight: 800; font-size: 11px;
   border-radius: var(--radius);
-  box-shadow: 0 0 16px -6px var(--go);
+  box-shadow: 0 0 14px -6px var(--go);
+  flex-shrink: 0;
 }
-.bc-head h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
-.subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; }
+.bc-head h2 { font-size: 14px; font-weight: 700; letter-spacing: 0.4px; }
+.subtitle { font-size: 10.5px; color: var(--fg-mute); margin-top: 2px; }
 
-/* —— 英雄计时器: 直播中才有, 巨型发光等宽, 速通灵魂 —— */
-.timer-hero {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 18px;
-  margin: 4px 0 16px;
-  background: linear-gradient(180deg, var(--go-dim), rgba(14, 58, 34, 0.25));
-  border: 1px solid var(--border-acc);
-  border-radius: var(--radius);
-  box-shadow: var(--go-glow);
-  position: relative;
-  overflow: hidden;
-}
-/* 计时器左侧一道高光, 像计分板灯条 */
-.timer-hero::before {
-  content: "";
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--go);
-  box-shadow: 0 0 12px var(--go);
-}
-.th-left { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
-.th-live { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--go); }
-.th-tag {
-  font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
-  color: var(--bad); background: var(--bad-dim);
-  border: 1px solid #5a1e2e;
-  padding: 2px 6px; border-radius: var(--radius-sm);
-}
-.th-time { font-size: 40px; flex: 1; text-align: center; }
-.th-right { flex-shrink: 0; }
-.th-unit { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: var(--fg-dim); text-transform: uppercase; }
-
-/* 推流实时参数行: 紧贴计时器下方, 终端风小字, 质量差(≥4)时变琥珀警示 */
-.uplink-bar {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
-  color: var(--fg-dim);
-  background: var(--inset);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 11px;
-  margin: -8px 0 14px;
-  font-variant-numeric: tabular-nums;
-}
-.uplink-bar.bad { color: var(--split); border-color: #5a4408; }
-@media (max-width: 560px) {
-  .th-time { font-size: 30px; }
-  .timer-hero { gap: 10px; padding: 12px 14px; }
-  .th-right { display: none; }
-}
-
-.actions { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
-
+/* 预览: 首屏主区, 大, 直播时绿边辉光 */
 .preview {
   position: relative;
   width: 100%;
@@ -193,28 +142,68 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   background: var(--inset);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  margin-top: 14px;
   overflow: hidden;
 }
 .preview.live { border-color: var(--go); box-shadow: 0 0 26px -8px var(--go); }
 .preview :deep(video) { width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1; }
 .preview-empty {
   position: absolute; inset: 0;
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: var(--space-sm);
   align-items: center; justify-content: center;
 }
-.ph-t { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
+.ph-t { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
 .ph-s { font-size: 11px; color: var(--fg-mute); }
 
-.hint { font-size: 11.5px; color: var(--fg-dim); margin-top: 12px; line-height: 1.8; }
+/* 控制条: 预览下方紧凑区, 计时器行 + 上行参数 + 按钮行 */
+.ctrl-bar {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* 直播计时器行: 横排, 发光等宽但比英雄版紧凑(预览才是主角) */
+.timer-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(180deg, var(--go-dim), rgba(14, 58, 34, 0.2));
+  border: 1px solid var(--border-acc);
+  border-left: 2px solid var(--go);
+  border-radius: var(--radius);
+}
+.live-label { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--go); flex-shrink: 0; }
+.th-time { font-size: 24px; flex: 1; }
+.th-unit { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--fg-dim); text-transform: uppercase; flex-shrink: 0; }
+
+/* 上行参数: 紧凑终端风, 质量差(≥4)变琥珀 */
+.uplink-bar {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--fg-dim);
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-variant-numeric: tabular-nums;
+}
+.uplink-bar.bad { color: var(--split); border-color: #5a4408; }
+
+.actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center; }
+.spec { margin-left: auto; }
+
+.hint { font-size: 11.5px; color: var(--fg-dim); margin-top: var(--space-md); line-height: 1.7; }
 .warn-box {
   border: 1px solid var(--split);
   border-left: 2px solid var(--split);
   color: var(--split);
   background: var(--split-dim);
   border-radius: var(--radius);
-  padding: 9px 11px;
-  font-size: 11px; line-height: 1.7;
-  margin-top: 10px;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 11px; line-height: 1.6;
+  margin-top: var(--space-sm);
+}
+
+@media (max-width: 540px) {
+  .th-time { font-size: 20px; }
+  .th-unit { display: none; }
 }
 </style>

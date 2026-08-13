@@ -159,13 +159,28 @@ onBeforeUnmount(() => {
     @leave="onLeave"
   />
 
-  <JoinForm v-if="!joined" :initial="cfg" @join="onJoin" />
+  <!-- 未进房: 角色分流进房 + 底部日志 -->
+  <template v-if="!joined">
+    <JoinForm :initial="cfg" @join="onJoin" />
+    <LogPanel variant="bottom" />
+  </template>
 
-  <PlayerPanel v-else-if="!cfg.isJudge" :small="cfg.small" :auto-share="cfg.autoShare" />
-  <JudgePanel v-else :count="onlineCount" :focused="hasFocus" />
+  <!-- 选手工作区: 预览为主 (PlayerPanel 内部重排) -->
+  <template v-else-if="!cfg.isJudge">
+    <PlayerPanel :small="cfg.small" :auto-share="cfg.autoShare" />
+    <LogPanel variant="bottom" />
+  </template>
 
-  <VideoGrid v-if="joined && cfg.isJudge" />
+  <!-- 裁判工作区: 侧栏(状态+日志) + 主视频区 -->
+  <div v-else class="workspace">
+    <aside class="sidebar">
+      <JudgePanel :count="onlineCount" :focused="hasFocus" />
+      <LogPanel variant="sidebar" />
+    </aside>
+    <main class="main-area">
+      <VideoGrid />
+    </main>
+  </div>
 
-  <LogPanel />
   <AutoplayOverlay />
 </template>

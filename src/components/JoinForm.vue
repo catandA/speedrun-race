@@ -132,10 +132,29 @@ function copyAll() {
       </span>
       <div>
         <h2>进入直播间</h2>
-        <p class="subtitle">填写房间信息加入比赛直播</p>
+        <p class="subtitle">选择身份, 填写房间信息加入比赛直播</p>
       </div>
     </header>
 
+    <!-- 角色分流: 顶层入口, 大卡片 (P1/JC 标记与进房后控制台一致) -->
+    <div class="role-tabs">
+      <button type="button" class="role-tab" :class="{ active: !isJudge }" @click="isJudge = false">
+        <span class="rt-mark">P1</span>
+        <span class="rt-body">
+          <span class="rt-name">选手</span>
+          <span class="rt-desc">分享屏幕开播</span>
+        </span>
+      </button>
+      <button type="button" class="role-tab" :class="{ active: isJudge }" @click="isJudge = true">
+        <span class="rt-mark">JC</span>
+        <span class="rt-body">
+          <span class="rt-name">裁判</span>
+          <span class="rt-desc">监控选手画面</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- 进房表单 -->
     <div class="grid-2">
       <div class="field">
         <label for="f-room">房间号</label>
@@ -158,18 +177,6 @@ function copyAll() {
       <span class="field-err" id="err-sig" v-if="errors.userSig">{{ errors.userSig }}</span>
     </div>
 
-    <div class="field">
-      <label>身份角色</label>
-      <div class="seg">
-        <button type="button" class="seg-btn" :class="{ active: !isJudge }" @click="isJudge = false">
-          选手
-        </button>
-        <button type="button" class="seg-btn" :class="{ active: isJudge }" @click="isJudge = true">
-          裁判
-        </button>
-      </div>
-    </div>
-
     <div class="field" v-if="isJudge">
       <label for="f-jt">裁判凭据 jt</label>
       <input id="f-jt" type="text" v-model="judgeToken" :class="{ err: errors.judgeToken }"
@@ -179,7 +186,7 @@ function copyAll() {
 
     <button class="btn primary submit" :disabled="joining" @click="submit">
       <span class="spin" v-if="joining" aria-hidden="true"></span>
-      {{ joining ? '进房中…' : '进入直播间' }}
+      {{ joining ? '进房中…' : (isJudge ? '进入裁判台' : '进入直播间') }}
     </button>
 
     <div class="hint-box">
@@ -190,10 +197,9 @@ function copyAll() {
         选手可选 <code>&auto=1</code> 自动弹屏幕分享; 小流档位 <code>&small=120p</code> (默认 120p, 可选 240p/360p)
       </div>
     </div>
-    <p class="warn-text">▲ 裁判链接由组织者用下方工具生成, 自带签名凭据; 选手无法自行进入裁判模式</p>
+    <p class="warn-text" v-if="isJudge">▲ 裁判链接由组织者用下方工具生成, 自带签名凭据; 选手无法自行进入裁判模式</p>
 
-    <div class="divider"></div>
-
+    <!-- 组织者工具: 独立区块, 与进房流程明确分离 -->
     <details class="org-tool">
       <summary>
         <span class="caret">▸</span> 组织者工具: 本地生成签名 / 链接
@@ -250,9 +256,9 @@ function copyAll() {
 </template>
 
 <style scoped>
-.join-panel { max-width: 600px; padding: 22px 24px 20px; }
+.join-panel { max-width: 640px; padding: var(--space-xl); }
 
-.join-head { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+.join-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); }
 .mark {
   display: grid; place-items: center;
   width: 34px; height: 34px;
@@ -264,32 +270,55 @@ function copyAll() {
 .join-head h2 { font-size: 17px; font-weight: 800; letter-spacing: 0.4px; }
 .subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; letter-spacing: 0.3px; }
 
-.field { margin-top: 2px; }
-.field-hint { font-size: 11px; color: var(--fg-mute); margin-top: 5px; }
-
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 540px) { .grid-2 { grid-template-columns: 1fr; } }
-
-/* 分段切换 */
-.seg {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+/* 角色分流入口: 两个大卡片, P1/JC 标记与进房后控制台视觉一致 */
+.role-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+.role-tab {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   background: var(--inset);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 4px;
-}
-.seg-btn {
-  padding: 8px 12px; font-size: 13px; font-weight: 600;
-  color: var(--fg-dim); background: transparent;
-  border: none; border-radius: var(--radius-sm); cursor: pointer;
-  transition: color 0.1s, background 0.1s;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
   font-family: inherit;
+  text-align: left;
 }
-.seg-btn:hover { color: var(--fg); }
-.seg-btn.active { color: var(--go); background: var(--go-dim); }
-.seg-btn:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
+.role-tab:hover { border-color: var(--fg-mute); background: var(--surface-2); }
+.role-tab.active {
+  border-color: var(--go);
+  background: var(--go-dim);
+  box-shadow: 0 0 18px -8px var(--go);
+}
+.rt-mark {
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  background: var(--surface-3); color: var(--fg-dim);
+  font-weight: 800; font-size: 11px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.role-tab.active .rt-mark { background: var(--go); color: #04140a; }
+.rt-body { display: flex; flex-direction: column; line-height: 1.2; }
+.rt-name { font-size: 14px; font-weight: 800; color: var(--fg); }
+.role-tab.active .rt-name { color: var(--go); }
+.rt-desc { font-size: 10.5px; color: var(--fg-mute); margin-top: 2px; }
 
-.submit { width: 100%; margin-top: 16px; padding: 12px; font-size: 14px; }
+.field { margin-top: 2px; }
+.field-hint { font-size: 11px; color: var(--fg-mute); margin-top: 5px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+@media (max-width: 540px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .role-tabs { grid-template-columns: 1fr; }
+}
+
+.submit { width: 100%; margin-top: var(--space-lg); padding: 12px; font-size: 14px; }
 
 /* loading 转圈 */
 .spin {
@@ -303,9 +332,9 @@ function copyAll() {
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2s; } }
 
 .hint-box {
-  display: flex; gap: 10px;
-  margin-top: 16px;
-  padding: 10px 12px;
+  display: flex; gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   background: var(--inset);
   border: 1px solid var(--border);
   border-left: 2px solid var(--go);
@@ -313,14 +342,12 @@ function copyAll() {
   font-size: 11.5px; color: var(--fg-dim); line-height: 1.8;
 }
 .hint-k { color: var(--go); font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
-.warn-text { font-size: 11px; color: var(--split); margin-top: 9px; }
+.warn-text { font-size: 11px; color: var(--split); margin-top: var(--space-sm); }
 
-.divider { height: 1px; background: var(--border); margin: 20px 0 2px; }
-
-/* 组织者折叠工具 */
-.org-tool { margin-top: 6px; }
+/* 组织者工具: 独立折叠区块, 与进房流程分离 */
+.org-tool { margin-top: var(--space-xl); }
 .org-tool > summary {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: var(--space-sm);
   cursor: pointer; user-select: none;
   list-style: none;
   font-size: 12px; font-weight: 600; color: var(--fg-dim);
@@ -332,21 +359,21 @@ function copyAll() {
 .caret { color: var(--go); width: 10px; display: inline-block; transition: transform 0.1s; }
 .org-tool[open] .caret { transform: rotate(90deg); }
 .lock-tip { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--go); background: var(--go-dim); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-acc); }
-.org-tool[open] > summary { margin-bottom: 12px; }
+.org-tool[open] > summary { margin-bottom: var(--space-md); }
 
 .org-body {
-  padding: 14px;
+  padding: var(--space-md);
   background: var(--inset);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
-.chk { display: inline-flex; gap: 7px; align-items: center; font-size: 12px; color: var(--fg-dim); cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 400; margin: 10px 0 0; }
+.row { display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap; margin: var(--space-md) 0; }
+.chk { display: inline-flex; gap: var(--space-sm); align-items: center; font-size: 12px; color: var(--fg-dim); cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 400; margin: var(--space-sm) 0 0; }
 .chk input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--go); }
 .inline-lbl { display: inline-flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--fg-dim); margin: 0; }
 .inline-lbl select { width: auto; min-width: 130px; padding: 7px 9px; }
 
-.field label { margin-top: 12px; }
+.field label { margin-top: var(--space-md); }
 .field:first-child label, .grid-2 .field label { margin-top: 0; }
 </style>

@@ -10,45 +10,41 @@ const list = computed(() => Object.values(tiles))
 </script>
 
 <template>
-  <div class="grid-wrap">
-    <div class="grid" :class="{ 'has-fullscreen': list.some(t => t.fullscreen) }">
-      <VideoTile
-        v-for="(t, i) in list"
-        :key="t.uid"
-        :tile="t"
-        :style="{ '--i': i }"
-        class="stagger"
-        @click="tileClick"
-        @mute="toggleMute"
-      />
-      <div v-if="!list.length" class="empty">
-        <span class="ph-t">NO INPUT</span>
-        <span>等待选手加入房间…</span>
-      </div>
+  <div class="grid" :class="{ 'has-fullscreen': list.some(t => t.fullscreen) }">
+    <VideoTile
+      v-for="(t, i) in list"
+      :key="t.uid"
+      :tile="t"
+      :style="{ '--i': i }"
+      class="stagger"
+      @click="tileClick"
+      @mute="toggleMute"
+    />
+    <div v-if="!list.length" class="empty">
+      <span class="ph-t">NO INPUT</span>
+      <span>等待选手加入房间…</span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.grid-wrap {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 22px;
-}
+/* 主区纯网格: 去掉外层 max-width/padding, 由 .main-area 容器管 */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
-  margin-bottom: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
 }
 .grid.has-fullscreen { display: block; }
 
 .empty {
   grid-column: 1 / -1;
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-sm);
   align-items: center; justify-content: center;
   color: var(--fg-mute); font-size: 12px;
-  padding: 52px 0;
+  padding: var(--space-3xl) 0;
+  background: var(--inset);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
 }
 .empty .ph-t { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
 </style>

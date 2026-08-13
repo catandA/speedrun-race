@@ -6,46 +6,57 @@ defineProps({
 </script>
 
 <template>
-  <section class="panel jc-panel">
+  <div class="sidebar-block jc-side">
     <header class="jc-head">
+      <span class="mark">JC</span>
       <div class="title-wrap">
-        <span class="mark">JC</span>
-        <div>
-          <h2>裁判控制台</h2>
-          <p class="subtitle">实时监控全部选手画面</p>
-        </div>
-      </div>
-      <div class="stats">
-        <span class="live-tag go" v-if="count"><span class="dot"></span>在线 {{ count }}</span>
-        <span class="live-tag split" v-if="focused"><span class="dot"></span>大流聚焦</span>
+        <h2>裁判控制台</h2>
+        <p class="subtitle">实时监控全部选手</p>
       </div>
     </header>
-    <p class="hint">
-      点击选手 = 全屏看大流(最清晰), 再次点击 = 缩回网格看全部小流。
-      <span class="kbd-hint">键盘: 数字键 1-9 聚焦 / ESC 退出 / 空格静音聚焦</span>
-    </p>
-  </section>
+
+    <div class="stats">
+      <span class="live-tag go" v-if="count"><span class="dot"></span>在线 {{ count }}</span>
+      <span class="live-tag split" v-if="focused"><span class="dot"></span>大流聚焦</span>
+      <span class="live-tag bad" v-if="!count"><span class="dot"></span>无信号</span>
+    </div>
+
+    <div class="kbd-row">
+      <span class="kbd-hint">数字键 1-9 聚焦 · ESC 退出 · 空格静音</span>
+    </div>
+    <p class="hint">点击选手全屏看大流(最清晰),再次点击缩回网格看全部小流。</p>
+  </div>
 </template>
 
 <style scoped>
-.jc-panel { max-width: 1180px; padding: 16px 22px; }
+.jc-side { padding: var(--space-md) var(--space-lg); }
 
-.jc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.title-wrap { display: flex; align-items: center; gap: 10px; }
+.jc-head { display: flex; align-items: center; gap: var(--space-sm); }
 .mark {
   display: grid; place-items: center;
-  width: 32px; height: 32px;
+  width: 28px; height: 28px;
   background: var(--go); color: #04140a;
-  font-weight: 800; font-size: 12px;
+  font-weight: 800; font-size: 11px;
   border-radius: var(--radius);
-  box-shadow: 0 0 16px -6px var(--go);
+  box-shadow: 0 0 14px -6px var(--go);
+  flex-shrink: 0;
 }
-.jc-head h2 { font-size: 15px; font-weight: 800; letter-spacing: 0.4px; }
-.subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; }
+.title-wrap { display: flex; flex-direction: column; line-height: 1.15; }
+.jc-head h2 { font-size: 13px; font-weight: 800; letter-spacing: 0.3px; }
+.subtitle { font-size: 10px; color: var(--fg-mute); margin-top: 2px; }
 
-.stats { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-/* 在线计数放大: 裁判最关心的数字 */
-.stats .live-tag.go { font-size: 12px; padding: 4px 11px; box-shadow: 0 0 16px -6px var(--go); }
-.hint { font-size: 11.5px; color: var(--fg-dim); line-height: 1.8; }
-.kbd-hint { color: var(--go); margin-left: 6px; }
+.stats { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-top: var(--space-md); }
+.stats .live-tag { font-size: 11px; padding: 3px 9px; }
+.stats .live-tag.go { box-shadow: 0 0 14px -6px var(--go); }
+
+.kbd-row {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--go);
+  border-radius: var(--radius-sm);
+}
+.kbd-hint { font-size: 10.5px; color: var(--go); font-weight: 600; letter-spacing: 0.2px; }
+.hint { font-size: 11px; color: var(--fg-mute); margin-top: var(--space-sm); line-height: 1.6; }
 </style>
