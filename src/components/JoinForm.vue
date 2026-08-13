@@ -256,61 +256,64 @@ function copyAll() {
 </template>
 
 <style scoped>
-.join-panel { max-width: 640px; padding: var(--space-xl); }
+.join-panel { max-width: 660px; padding: var(--space-2xl); }
 
-.join-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); }
+.join-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-xl); }
 .mark {
   display: grid; place-items: center;
-  width: 34px; height: 34px;
-  background: var(--go); color: #04140a;
+  width: 38px; height: 38px;
+  background: linear-gradient(160deg, var(--go-soft), var(--go));
+  color: #04140a;
   border-radius: var(--radius);
-  box-shadow: 0 0 18px -6px var(--go);
+  box-shadow: 0 4px 14px -4px rgba(61, 245, 138, 0.45), 0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
   flex-shrink: 0;
 }
-.join-head h2 { font-size: 17px; font-weight: 800; letter-spacing: 0.4px; }
-.subtitle { font-size: 11px; color: var(--fg-mute); margin-top: 2px; letter-spacing: 0.3px; }
+.join-head h2 { font-size: 19px; font-weight: 800; letter-spacing: 0.2px; }
+.subtitle { font-size: 12.5px; color: var(--fg-mute); margin-top: 3px; }
 
-/* 角色分流入口: 两个大卡片, P1/JC 标记与进房后控制台视觉一致 */
+/* 角色分流入口: 精致卡片, 选中才点亮 (辉光只给选中态) */
 .role-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
 }
 .role-tab {
   display: flex; align-items: center; gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--inset);
+  padding: var(--space-lg);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+  transition: border-color 0.16s var(--ease-out-quart), background 0.16s, box-shadow 0.16s, transform 0.1s var(--ease-out-quart);
   font-family: inherit;
   text-align: left;
 }
-.role-tab:hover { border-color: var(--fg-mute); background: var(--surface-2); }
+.role-tab:hover { border-color: var(--surface-hi); transform: translateY(-1px); }
 .role-tab.active {
   border-color: var(--go);
-  background: var(--go-dim);
-  box-shadow: 0 0 18px -8px var(--go);
+  background: linear-gradient(180deg, var(--go-dim-2), var(--go-dim));
+  box-shadow: 0 0 0 1px var(--go), 0 8px 22px -8px rgba(61, 245, 138, 0.4);
 }
 .rt-mark {
   display: grid; place-items: center;
-  width: 30px; height: 30px;
+  width: 32px; height: 32px;
   background: var(--surface-3); color: var(--fg-dim);
+  font-family: var(--font-mono);
   font-weight: 800; font-size: 11px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.16s, color 0.16s;
 }
-.role-tab.active .rt-mark { background: var(--go); color: #04140a; }
-.rt-body { display: flex; flex-direction: column; line-height: 1.2; }
-.rt-name { font-size: 14px; font-weight: 800; color: var(--fg); }
+.role-tab.active .rt-mark { background: linear-gradient(160deg, var(--go-soft), var(--go)); color: #04140a; }
+.rt-body { display: flex; flex-direction: column; line-height: 1.25; }
+.rt-name { font-size: 15px; font-weight: 700; color: var(--fg); }
 .role-tab.active .rt-name { color: var(--go); }
-.rt-desc { font-size: 10.5px; color: var(--fg-mute); margin-top: 2px; }
+.rt-desc { font-size: 11.5px; color: var(--fg-mute); margin-top: 2px; }
 
 .field { margin-top: 2px; }
-.field-hint { font-size: 11px; color: var(--fg-mute); margin-top: 5px; }
+.field-hint { font-size: 11.5px; color: var(--fg-mute); margin-top: 6px; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
 @media (max-width: 540px) {
@@ -318,7 +321,7 @@ function copyAll() {
   .role-tabs { grid-template-columns: 1fr; }
 }
 
-.submit { width: 100%; margin-top: var(--space-lg); padding: 12px; font-size: 14px; }
+.submit { width: 100%; margin-top: var(--space-xl); padding: 13px; font-size: 14.5px; }
 
 /* loading 转圈 */
 .spin {
@@ -333,36 +336,36 @@ function copyAll() {
 
 .hint-box {
   display: flex; gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-xl);
+  padding: var(--space-md);
   background: var(--inset);
   border: 1px solid var(--border);
   border-left: 2px solid var(--go);
   border-radius: var(--radius);
-  font-size: 11.5px; color: var(--fg-dim); line-height: 1.8;
+  font-size: 12px; color: var(--fg-dim); line-height: 1.85;
 }
 .hint-k { color: var(--go); font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
-.warn-text { font-size: 11px; color: var(--split); margin-top: var(--space-sm); }
+.warn-text { font-size: 11.5px; color: var(--split); margin-top: var(--space-sm); }
 
-/* 组织者工具: 独立折叠区块, 与进房流程分离 */
-.org-tool { margin-top: var(--space-xl); }
+/* 组织者工具: 独立折叠区块 */
+.org-tool { margin-top: var(--space-2xl); }
 .org-tool > summary {
   display: flex; align-items: center; gap: var(--space-sm);
   cursor: pointer; user-select: none;
   list-style: none;
-  font-size: 12px; font-weight: 600; color: var(--fg-dim);
-  padding: 5px 0;
-  transition: color 0.1s;
+  font-size: 12.5px; font-weight: 600; color: var(--fg-dim);
+  padding: 6px 0;
+  transition: color 0.12s;
 }
 .org-tool > summary::-webkit-details-marker { display: none; }
 .org-tool > summary:hover { color: var(--fg); }
-.caret { color: var(--go); width: 10px; display: inline-block; transition: transform 0.1s; }
+.caret { color: var(--go); width: 10px; display: inline-block; transition: transform 0.12s; }
 .org-tool[open] .caret { transform: rotate(90deg); }
 .lock-tip { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--go); background: var(--go-dim); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-acc); }
 .org-tool[open] > summary { margin-bottom: var(--space-md); }
 
 .org-body {
-  padding: var(--space-md);
+  padding: var(--space-lg);
   background: var(--inset);
   border: 1px solid var(--border);
   border-radius: var(--radius);

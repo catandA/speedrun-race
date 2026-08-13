@@ -66,21 +66,23 @@ function toggle() { expanded.value = !expanded.value }
 .log-head {
   display: flex; align-items: center; gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
   border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
   cursor: pointer;
   user-select: none;
-  transition: background 0.1s;
+  transition: background 0.12s;
 }
-.log-head:hover { background: var(--surface-3); }
+.log-head:hover { background: linear-gradient(180deg, var(--surface-3), var(--surface-2)); }
 .title {
+  font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; letter-spacing: 1px;
   color: var(--fg-dim);
   flex-shrink: 0;
 }
 .count {
+  font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; color: var(--go);
   background: var(--go-dim); padding: 1px 7px; border-radius: var(--radius-sm); border: 1px solid var(--border-acc);
   flex-shrink: 0;
@@ -88,6 +90,7 @@ function toggle() { expanded.value = !expanded.value }
 .latest {
   display: flex; gap: var(--space-sm); align-items: center;
   min-width: 0; overflow: hidden;
+  font-family: var(--font-mono);
   font-size: 11px; color: var(--fg-dim);
 }
 .latest .log-time { color: var(--fg-mute); flex-shrink: 0; }
@@ -96,11 +99,12 @@ function toggle() { expanded.value = !expanded.value }
 }
 .spacer { flex: 1; }
 .clear {
+  font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
   color: var(--fg-mute);
   background: transparent; border: 1px solid var(--border); cursor: pointer;
   padding: 2px 7px; border-radius: var(--radius-sm);
-  transition: color 0.1s, border-color 0.1s;
+  transition: color 0.12s, border-color 0.12s;
   flex-shrink: 0;
 }
 .clear:hover { color: var(--bad); border-color: var(--bad); }
@@ -116,12 +120,13 @@ function toggle() { expanded.value = !expanded.value }
   border: 1px solid var(--border);
   border-radius: 0 0 var(--radius) var(--radius);
   padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--fg-dim);
   overflow: auto;
   line-height: 1.65;
 }
-.log-card.bottom .log-body { max-height: 170px; }
+.log-card.bottom .log-body { max-height: 180px; }
 .log-card.sidebar .log-body { max-height: 260px; }
 
 .log-line { display: flex; gap: var(--space-sm); padding: 1px 0; }

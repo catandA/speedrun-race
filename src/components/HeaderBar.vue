@@ -43,44 +43,53 @@ defineEmits(['leave'])
 .topbar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 20px;
-  background: var(--bg-1);
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-xl);
+  min-height: var(--topbar-h);
+  background: rgba(7, 8, 12, 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: var(--z-sticky);
 }
 
-.brand { display: flex; align-items: center; gap: 11px; }
-/* 闪电标识: 速通的灵魂符号, 绿底带一点信号辉光 */
+.brand { display: flex; align-items: center; gap: var(--space-md); }
+/* 闪电标识: 渐变方块 + 克制辉光 (品牌点睛) */
 .mark {
   display: grid; place-items: center;
-  width: 32px; height: 32px;
-  background: var(--go);
+  width: 34px; height: 34px;
+  background: linear-gradient(160deg, var(--go-soft), var(--go));
   color: #04140a;
   border-radius: var(--radius);
-  box-shadow: 0 0 18px -6px var(--go);
+  box-shadow: 0 4px 14px -4px rgba(61, 245, 138, 0.45), 0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
   flex-shrink: 0;
 }
-.wordmark { display: flex; flex-direction: column; line-height: 1.05; }
+.wordmark { display: flex; flex-direction: column; line-height: 1.1; }
 .wordmark h1 {
   font-size: 16px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
   color: var(--fg);
   white-space: nowrap;
 }
-.wordmark h1 .accent { color: var(--go); margin-left: 3px; }
-.wordmark .sub { font-size: 9.5px; color: var(--fg-mute); letter-spacing: 1px; margin-top: 2px; }
+.wordmark h1 .accent {
+  background: linear-gradient(90deg, var(--go-soft), var(--go));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-left: 3px;
+}
+.wordmark .sub { font-size: 9.5px; color: var(--fg-mute); letter-spacing: 1.4px; margin-top: 2px; font-family: var(--font-mono); }
 
-.tags { display: flex; gap: 7px; flex-wrap: wrap; }
+.tags { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
 .spacer { flex: 1; }
 
-/* 顶栏状态徽章略放大, go 态带辉光强调"在直播" */
+/* 顶栏状态徽章: go 态带辉光强调"在直播" */
 .hd-status { font-size: 12px; padding: 4px 11px; }
-.hd-status.go { box-shadow: 0 0 16px -6px var(--go); }
+.hd-status.go { box-shadow: 0 0 0 1px var(--go), 0 0 18px -6px var(--go); }
 
 .leave { color: var(--fg-dim); }
 </style>

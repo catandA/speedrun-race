@@ -100,22 +100,23 @@ onBeforeUnmount(() => {
   overflow: hidden;
   aspect-ratio: 16 / 9;
   cursor: pointer;
-  transition: border-color 0.14s var(--ease-out-quart), box-shadow 0.14s var(--ease-out-quart);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.16s var(--ease-out-quart), box-shadow 0.16s var(--ease-out-quart), transform 0.1s var(--ease-out-quart);
 }
-.tile:hover { border-color: var(--go); }
-/* 直播中: 绿边 + 信号辉光, 和待机/离线拉开明显差距 */
+.tile:hover { border-color: var(--surface-hi); transform: translateY(-1px); }
+/* 直播中: 绿边 + 信号辉光 (核心广播信号, 必须最醒目) */
 .tile.live {
   border-color: var(--go);
-  box-shadow: 0 0 0 1px var(--go), 0 0 26px -8px var(--go), inset 0 0 30px -16px var(--go);
+  box-shadow: 0 0 0 1px var(--go), 0 0 26px -8px var(--go), inset 0 0 30px -16px var(--go), var(--shadow-sm);
 }
-.tile.fullscreen { position: fixed; inset: 0; z-index: 50; border-radius: 0; aspect-ratio: auto; border: none; box-shadow: none; }
+.tile.fullscreen { position: fixed; inset: 0; z-index: var(--z-tile-fullscreen); border-radius: 0; aspect-ratio: auto; border: none; box-shadow: none; transform: none; }
 
 .video { width: 100%; height: 100%; position: relative; z-index: 1; }
 .video :deep(video) { width: 100%; height: 100%; object-fit: contain; background: #000; }
 
 /* 顶部条 */
 .topbar {
-  position: absolute; top: 7px; left: 7px; right: 7px;
+  position: absolute; top: 8px; left: 8px; right: 8px;
   display: flex; align-items: center; gap: 6px;
   z-index: 3;
 }
@@ -123,27 +124,29 @@ onBeforeUnmount(() => {
 
 .mute-btn {
   display: grid; place-items: center;
-  width: 24px; height: 24px;
-  background: rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.12);
+  width: 26px; height: 26px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
   border-radius: var(--radius-sm); cursor: pointer;
   font-size: 12px; font-weight: 700;
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.12s, color 0.12s;
 }
-.mute-btn:hover { background: rgba(0,0,0,0.8); }
+.mute-btn:hover { background: rgba(0, 0, 0, 0.78); }
 .mute-btn.muted { background: var(--bad); border-color: var(--bad); color: #fff; }
 
 /* 占位状态 */
 .placeholder {
   position: absolute; inset: 0;
-  display: flex; flex-direction: column; gap: 5px;
+  display: flex; flex-direction: column; gap: 6px;
   align-items: center; justify-content: center;
   color: var(--fg-mute);
 }
-.ph-t { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: var(--fg-mute); }
-.ph-name { font-size: 14px; font-weight: 700; color: var(--fg-dim); }
-.sub { font-size: 11px; color: var(--fg-mute); }
+.ph-t { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: var(--fg-mute); }
+.ph-name { font-size: 15px; font-weight: 700; color: var(--fg-dim); }
+.sub { font-size: 11.5px; color: var(--fg-mute); }
 .off-sub { color: var(--bad); }
 
 /* 全屏退出提示 */
@@ -154,14 +157,16 @@ onBeforeUnmount(() => {
   z-index: 4;
   display: flex; align-items: center; gap: 5px;
   font-size: 12px; color: var(--fg);
-  background: rgba(0,0,0,0.7);
-  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius);
   padding: 6px 12px;
 }
 .exit-hint kbd {
   display: inline-block;
-  font-family: inherit;
+  font-family: var(--font-mono);
   background: var(--go);
   color: #04140a;
   font-weight: 700;
@@ -170,12 +175,12 @@ onBeforeUnmount(() => {
   font-size: 11px;
 }
 
-/* 底部信息条 */
+/* 底部信息条 (不盖视频主体: 只在底部渐变压一层信息) */
 .meta {
   position: absolute; left: 0; right: 0; bottom: 0;
   display: flex; align-items: center; gap: 8px;
-  padding: 14px 10px 7px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.9));
+  padding: 16px 10px 7px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
   font-size: 12px;
   pointer-events: none;
 }
@@ -183,6 +188,7 @@ onBeforeUnmount(() => {
 .meta .st { color: var(--fg-dim); font-size: 10.5px; }
 .meta .stats {
   margin-left: auto;
+  font-family: var(--font-mono);
   color: var(--fg-dim);
   font-size: 10px;
   font-variant-numeric: tabular-nums;

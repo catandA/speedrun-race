@@ -31,7 +31,7 @@ const list = computed(() => Object.values(tiles))
 /* 主区纯网格: 去掉外层 max-width/padding, 由 .main-area 容器管 */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: var(--space-md);
 }
 .grid.has-fullscreen { display: block; }
@@ -40,11 +40,12 @@ const list = computed(() => Object.values(tiles))
   grid-column: 1 / -1;
   display: flex; flex-direction: column; gap: var(--space-sm);
   align-items: center; justify-content: center;
-  color: var(--fg-mute); font-size: 12px;
-  padding: var(--space-3xl) 0;
-  background: var(--inset);
+  color: var(--fg-mute); font-size: 13px;
+  padding: var(--space-4xl) 0;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
-.empty .ph-t { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
+.empty .ph-t { font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
 </style>

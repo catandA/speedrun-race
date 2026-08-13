@@ -1,58 +1,63 @@
 /* ============================================================
-   速通比赛直播间 · 计分板设计系统 (广播感放大版)
-   参考 LiveSplit / speedrun.com / GDQ 计时器: 等宽字体 + 分段时间色
-   颜色做语义而非装饰: 绿=直播/进行, 琥珀=警告/分段, 红=离线/失败
-   英雄时刻 = LIVE 计时器; 氛围 = 扫描线/网格/暗角; 动效 = 有目的的广播脉动
+   速通比赛直播间 · 广播控制台 × 官网质感 (混合)
+   设计立场: 深空层次底 + 双字体(无衬线UI / mono数字) + 柔和投影深度
+            辉光克制——只留给 LIVE 英雄时刻与直播信号, 不再满屏发光
+   信号语义不变: 绿=直播/进行, 琥珀=警告/分段, 红=离线/失败
    ============================================================ */
 
 :root {
-  /* —— 表面 (扁平, 无玻璃; 略带绿调让中性色不冷死) —— */
-  --bg: #08090c;
-  --bg-1: #060709;
-  --surface: #121319;
-  --surface-2: #1a1c24;
-  --surface-3: #23262f;
-  --inset: #050607;
+  /* —— 表面: 深空微冷调, 靠渐变与投影分层而非纯平 —— */
+  --bg: #0a0b11;
+  --bg-1: #07080c;
+  --surface: #11131c;
+  --surface-2: #161924;
+  --surface-3: #1e2230;
+  --surface-hi: #262b3a;
+  --inset: #06070b;
 
-  /* —— 描边 —— */
-  --border: #282a33;
-  --border-strong: #3a3d48;
+  /* —— 描边: 更克制, 不抢内容 —— */
+  --border: #20232f;
+  --border-strong: #2d3142;
   --border-acc: #1f6b3f;
 
   /* —— 文字 —— */
-  --fg: #f2f3f7;
-  --fg-dim: #9a9ca8;
-  --fg-mute: #5c5e6a;
+  --fg: #f3f4f8;
+  --fg-dim: #a6a9b8;
+  --fg-mute: #5f6276;
 
-  /* —— 分段时间色 (语义, 速通灵魂) —— */
-  --go: #3df58a;      /* 直播中 / 进行 (LiveSplit 绿) */
-  --go-soft: #5cff9c;
-  --go-dim: #0e3a22;
-  --split: #ffb000;   /* 警告 / 分段 (琥珀) */
-  --split-dim: #3a2c08;
-  --bad: #ff5277;     /* 离线 / 失败 (红) */
-  --bad-dim: #3a1320;
+  /* —— 信号色 (语义不变, dim 改 rgba 适配多层底) —— */
+  --go: #3df58a;       /* 直播 / 进行 */
+  --go-soft: #6cffa8;
+  --go-dim: rgba(61, 245, 138, 0.13);
+  --go-dim-2: rgba(61, 245, 138, 0.22);
+  --split: #ffb000;    /* 警告 / 分段 */
+  --split-dim: rgba(255, 176, 0, 0.13);
+  --bad: #ff5277;      /* 离线 / 失败 */
+  --bad-dim: rgba(255, 82, 119, 0.13);
 
-  /* —— 圆角: 小, 计分板不气泡 —— */
-  --radius: 4px;
-  --radius-sm: 3px;
+  /* —— 圆角: 略放大更现代, 但不气泡 —— */
+  --radius-sm: 4px;
+  --radius: 7px;
+  --radius-lg: 11px;
 
-  /* —— 阴影: 极少, 极克制 —— */
-  --shadow: 0 0 0 1px var(--border);
+  /* —— 深度: 柔和分层投影 (取代扁平 + 绿顶边) —— */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.6), 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-lg: 0 20px 56px -16px rgba(0, 0, 0, 0.7), 0 1px 0 0 rgba(255, 255, 255, 0.04) inset;
+  --ring: 0 0 0 3px rgba(61, 245, 138, 0.22);
 
-  /* —— LIVE 辉光: 克制的计分板发光, 非满屏霓虹 —— */
-  --go-glow: 0 0 0 1px var(--go), 0 0 22px -6px var(--go);
-  --go-glow-strong: 0 0 0 1px var(--go), 0 0 34px -4px var(--go), 0 0 60px -10px var(--go);
+  /* —— 辉光: 只用在 LIVE 英雄与直播信号, 量级克制 —— */
+  --go-glow: 0 0 0 1px var(--go), 0 0 24px -6px var(--go);
 
-  /* —— 字体: 全等宽, 计时器就是等宽; 靠字号/字重拉开层级而非换字族 —— */
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", "Consolas", "Microsoft YaHei", monospace;
+  /* —— 字体: 双族. UI 走无衬线 (可读+显贵), 数字/计时/日志走等宽 —— */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", "Consolas", monospace;
 
   /* —— 动效令牌 —— */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 
-  /* —— 4pt 间距尺度 (spatial-design: 4/8/12/16/24/32/48/64) —— */
+  /* —— 4pt 间距尺度 —— */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -62,7 +67,7 @@
   --space-3xl: 48px;
   --space-4xl: 64px;
 
-  /* —— z-index 语义阶梯 (sticky → tile-fullscreen → overlay → modal) —— */
+  /* —— z-index 语义阶梯 —— */
   --z-base: 1;
   --z-sidebar: 20;
   --z-sticky: 30;
@@ -70,36 +75,35 @@
   --z-overlay: 90;
   --z-modal: 100;
 
-  /* —— 工作区布局 (裁判侧栏 + 主视频区) —— */
+  /* —— 工作区布局 —— */
   --sidebar-w: 300px;
   --workspace-max: 1480px;
-  --topbar-h: 52px;
+  --topbar-h: 56px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-track { background: var(--bg-1); }
-*::-webkit-scrollbar-thumb { background: var(--surface-3); border: 2px solid var(--bg-1); }
-*::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
-* { scrollbar-width: thin; scrollbar-color: var(--surface-3) var(--bg-1); }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--surface-3); border: 2px solid transparent; background-clip: padding-box; border-radius: 10px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--surface-hi); background-clip: padding-box; }
+* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 
 html, body { height: 100%; }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.55;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  /* 顶部的细分隔线, 像计分板边框 */
-  border-top: 2px solid var(--go);
+  text-rendering: optimizeLegibility;
   position: relative;
   overflow-x: hidden;
 }
 
-/* —— 广播氛围底: 极淡网格 + 顶部绿色信号辉光 + 暗角, 全程不抢内容 —— */
+/* —— 深空氛围底: 顶部信号辉光 + 极淡网格 + 四角暗角, 全程不抢内容 —— */
 body::before {
   content: "";
   position: fixed;
@@ -107,22 +111,19 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    /* 顶部一点绿色信号晕, 像 LIVE 灯映在墙上 */
-    radial-gradient(120% 60% at 50% -10%, rgba(61, 245, 138, 0.07), transparent 60%),
-    /* 极淡网格, 几乎看不见, 只给一点结构感 */
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px) 0 0 / 44px 44px,
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px) 0 0 / 44px 44px;
+    radial-gradient(120% 55% at 50% -8%, rgba(61, 245, 138, 0.08), transparent 60%),
+    radial-gradient(80% 50% at 100% 0%, rgba(99, 102, 241, 0.06), transparent 55%),
+    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px) 0 0 / 48px 48px;
 }
-/* 四角暗角, 聚焦中央, 像显像管 */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(130% 130% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(130% 130% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
 }
-/* 内容压在氛围层之上 */
 #app { position: relative; z-index: 1; }
 
 button { font-family: inherit; }
@@ -130,11 +131,14 @@ a { color: var(--go); text-decoration: none; }
 a:hover { text-decoration: underline; }
 ::selection { background: var(--go); color: #04140a; }
 
+code, kbd, .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 code {
-  font-family: inherit;
-  font-size: 0.92em;
+  font-size: 0.88em;
   background: var(--inset);
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
   color: var(--go);
   border: 1px solid var(--border);
@@ -147,33 +151,33 @@ input[type="text"], input[type="password"], textarea, select {
   border: 1px solid var(--border-strong);
   color: var(--fg);
   border-radius: var(--radius);
-  padding: 10px 12px;
-  font-size: 13px;
-  font-family: inherit;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  padding: 10px 13px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  transition: border-color 0.14s, box-shadow 0.14s, background 0.14s;
 }
 input::placeholder, textarea::placeholder { color: var(--fg-mute); }
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--go);
-  box-shadow: 0 0 0 2px var(--go-dim), 0 0 18px -8px var(--go);
+  box-shadow: var(--ring);
+  background: #08090f;
 }
-/* 错误态字段 */
 input.err, textarea.err { border-color: var(--bad); }
-input.err:focus, textarea.err:focus { box-shadow: 0 0 0 2px var(--bad-dim); }
-textarea { resize: vertical; line-height: 1.6; }
+input.err:focus, textarea.err:focus { box-shadow: 0 0 0 3px rgba(255, 82, 119, 0.2); }
+textarea { resize: vertical; line-height: 1.65; }
 
 label {
   display: block;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--fg-dim);
   margin: 14px 0 6px;
 }
 
-/* —— 按钮: 扁平高对比, 小圆角 —— */
+/* —— 按钮: 柔和投影 + hover 微抬, 辉光只给主行动 —— */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -186,78 +190,88 @@ label {
   padding: 9px 16px;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  font-family: var(--font-sans);
+  letter-spacing: 0.2px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s var(--ease-out-quart), border-color 0.12s, color 0.12s, transform 0.08s;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.14s var(--ease-out-quart), border-color 0.14s, color 0.14s, transform 0.1s var(--ease-out-quart), box-shadow 0.14s;
 }
-.btn:hover { background: var(--surface-3); border-color: var(--border-strong); }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
+.btn:hover { background: var(--surface-3); border-color: var(--surface-hi); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn:focus-visible { outline: none; box-shadow: var(--ring); }
 
-/* 主按钮: 绿, "进行"语义, 带一点信号辉光 */
+/* 主按钮: 绿, 渐变 + 克制辉光 (主行动才发光) */
 .btn.primary {
-  background: var(--go);
+  background: linear-gradient(180deg, var(--go-soft), var(--go));
   border-color: var(--go);
   color: #04140a;
   font-weight: 700;
-  box-shadow: 0 0 22px -8px var(--go);
+  box-shadow: 0 6px 18px -6px rgba(61, 245, 138, 0.5), var(--shadow-sm);
 }
-.btn.primary:hover { background: var(--go-soft); border-color: var(--go-soft); box-shadow: 0 0 28px -6px var(--go); }
+.btn.primary:hover { background: linear-gradient(180deg, #8dffc0, var(--go-soft)); box-shadow: 0 8px 22px -6px rgba(61, 245, 138, 0.6), var(--shadow-sm); }
 .btn.primary:disabled { background: var(--surface-3); color: var(--fg-mute); border-color: var(--border); box-shadow: none; }
 
-.btn.green { background: var(--go); border-color: var(--go); color: #04140a; font-weight: 700; box-shadow: 0 0 22px -8px var(--go); }
-.btn.green:hover { background: var(--go-soft); box-shadow: 0 0 28px -6px var(--go); }
-.btn.red { background: var(--bad); border-color: var(--bad); color: #2a0710; font-weight: 700; box-shadow: 0 0 22px -8px var(--bad); }
-.btn.red:hover { background: #ff6d8c; box-shadow: 0 0 28px -6px var(--bad); }
+.btn.green { background: linear-gradient(180deg, var(--go-soft), var(--go)); border-color: var(--go); color: #04140a; font-weight: 700; box-shadow: 0 6px 18px -6px rgba(61, 245, 138, 0.5); }
+.btn.green:hover { background: linear-gradient(180deg, #8dffc0, var(--go-soft)); }
+.btn.red { background: linear-gradient(180deg, #ff6d8c, var(--bad)); border-color: var(--bad); color: #2a0710; font-weight: 700; box-shadow: 0 6px 18px -6px rgba(255, 82, 119, 0.5); }
+.btn.red:hover { background: linear-gradient(180deg, #ff8aa3, #ff6d8c); }
 
-.btn.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--fg-dim); }
-.btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
-.btn.ghost.active { border-color: var(--go); color: var(--go); background: var(--go-dim); box-shadow: 0 0 16px -8px var(--go); }
+.btn.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--fg-dim); box-shadow: none; }
+.btn.ghost:hover { background: var(--surface-2); color: var(--fg); border-color: var(--surface-hi); }
+.btn.ghost.active { border-color: var(--go); color: var(--go); background: var(--go-dim); }
 
 .btn.sm { padding: 5px 11px; font-size: 12px; }
 
-/* —— 面板: 扁平, 顶部一条强调线 (像计分板分区) —— */
+/* —— 面板: 深度 + 顶部高光伪元素 (取代重复绿顶边) —— */
 .panel {
   position: relative;
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
-  border-top: 2px solid var(--go);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  margin: 16px auto;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin: 22px auto;
   max-width: 980px;
+  box-shadow: var(--shadow);
   animation: panel-in 420ms var(--ease-out-expo) both;
 }
-.panel h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 14px; right: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  pointer-events: none;
+}
+.panel h2 { font-size: 16px; font-weight: 700; letter-spacing: 0.2px; }
 @keyframes panel-in {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
 
-/* —— 收敛后的胶囊: 只两种 —— */
-/* .tag: 中性信息 */
+/* —— 标签: 两种 —— */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   color: var(--fg-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
   padding: 3px 9px;
   border-radius: var(--radius-sm);
 }
-.tag .k { color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.6px; }
+.tag .k { color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.6px; margin-right: 2px; }
 
-/* .live-tag: 带语义色的状态 (go/split/bad) */
 .live-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -274,7 +288,6 @@ label {
 .live-tag.go .dot { animation: blink 1s steps(2) infinite; }
 @media (prefers-reduced-motion: reduce) { .live-tag.go .dot { animation: none; } }
 
-/* —— 字段错误文字 —— */
 .field-err {
   display: block;
   margin-top: 5px;
@@ -284,10 +297,9 @@ label {
 
 /* ============================================================
    广播感组件: REC 脉动 / 英雄计时器 / 入场错峰
-   只用在状态标识与计时器上, 绝不盖在视频画面上 (不能糊住选手画面)
+   只用在状态标识与计时器上, 绝不盖在视频画面上
    ============================================================ */
 
-/* REC 点: 直播中的录制脉动, 比 live-tag 的点更醒目 */
 .rec-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
@@ -313,7 +325,6 @@ label {
   line-height: 1;
 }
 
-/* 入场错峰: 列表项按 --i 顺序浮入 */
 .stagger {
   animation: rise 380ms var(--ease-out-expo) both;
   animation-delay: calc(var(--i, 0) * 55ms);
@@ -328,10 +339,6 @@ label {
 
 /* ============================================================
    工作区布局: 裁判 = 侧栏 + 主视频区
-   从"垂直堆叠表单页"转向"分主次控制台"
-   - 侧栏+主区是二维 → Grid; 内部一维 → Flex
-   - 间距走 --space-* 尺度, 不再现编值
-   - viewport 断点仅用于页面级结构 (spatial-design: 组件级用 container)
    ============================================================ */
 .workspace {
   max-width: var(--workspace-max);
@@ -342,9 +349,8 @@ label {
   gap: var(--space-lg);
   align-items: start;
 }
-.main-area { min-width: 0; }   /* minmax(0) 让主区可缩, 防视频溢出撑爆侧栏 */
+.main-area { min-width: 0; }
 
-/* 侧栏: sticky 钉在顶栏下方, 自身高度不超视口, 内部独立滚 */
 .sidebar {
   position: sticky;
   top: calc(var(--topbar-h) + var(--space-sm));
@@ -354,7 +360,6 @@ label {
   max-height: calc(100vh - var(--topbar-h) - var(--space-xl));
 }
 
-/* 窄屏: 侧栏退回顶部条, 主区吃满 */
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -367,19 +372,28 @@ label {
   }
 }
 
-/* —— 侧栏块: JudgePanel/LogPanel 在侧栏内的统一容器 —— */
+/* —— 侧栏块: 深度 + 顶部高光 —— */
 .sidebar-block {
-  background: var(--surface);
+  position: relative;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
-  border-top: 2px solid var(--go);
   border-radius: var(--radius);
   padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+.sidebar-block::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12px; right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
 }
 .sidebar-block .blk-head {
   display: flex; align-items: center; gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
 .sidebar-block .blk-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
   color: var(--fg-dim); text-transform: uppercase;
 }

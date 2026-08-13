@@ -118,23 +118,25 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
 </template>
 
 <style scoped>
-.bc-panel { max-width: 720px; padding: var(--space-lg) var(--space-xl); }
+.bc-panel { max-width: 760px; padding: var(--space-xl) var(--space-2xl); }
 
-.bc-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); justify-content: space-between; }
+.bc-head { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); justify-content: space-between; }
 .title-wrap { display: flex; align-items: center; gap: var(--space-sm); }
 .mark {
   display: grid; place-items: center;
-  width: 28px; height: 28px;
-  background: var(--go); color: #04140a;
+  width: 30px; height: 30px;
+  background: linear-gradient(160deg, var(--go-soft), var(--go));
+  color: #04140a;
+  font-family: var(--font-mono);
   font-weight: 800; font-size: 11px;
-  border-radius: var(--radius);
-  box-shadow: 0 0 14px -6px var(--go);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px -4px rgba(61, 245, 138, 0.4), 0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
   flex-shrink: 0;
 }
-.bc-head h2 { font-size: 14px; font-weight: 700; letter-spacing: 0.4px; }
-.subtitle { font-size: 10.5px; color: var(--fg-mute); margin-top: 2px; }
+.bc-head h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+.subtitle { font-size: 11.5px; color: var(--fg-mute); margin-top: 2px; }
 
-/* 预览: 首屏主区, 大, 直播时绿边辉光 */
+/* 预览: 首屏主区, 直播时绿边辉光 (LIVE 英雄画面, 辉光合理) */
 .preview {
   position: relative;
   width: 100%;
@@ -143,8 +145,12 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
-.preview.live { border-color: var(--go); box-shadow: 0 0 26px -8px var(--go); }
+.preview.live {
+  border-color: var(--go);
+  box-shadow: 0 0 0 1px var(--go), 0 0 28px -8px var(--go), var(--shadow);
+}
 /* 屏幕分享预览: SDK 把本地视频当摄像头渲染默认镜像, 但屏幕内容镜像后文字反着看不清。
    反转回来仅影响本地预览渲染, 不影响推流内容(轨道本身不镜像, 裁判侧正常)。 */
 .preview :deep(video) {
@@ -158,10 +164,10 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   display: flex; flex-direction: column; gap: var(--space-sm);
   align-items: center; justify-content: center;
 }
-.ph-t { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
-.ph-s { font-size: 11px; color: var(--fg-mute); }
+.ph-t { font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
+.ph-s { font-size: 11.5px; color: var(--fg-mute); }
 
-/* 控制条: 预览下方紧凑区, 计时器行 + 上行参数 + 按钮行 */
+/* 控制条: 预览下方紧凑区 */
 .ctrl-bar {
   margin-top: var(--space-md);
   display: flex;
@@ -169,21 +175,22 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   gap: var(--space-sm);
 }
 
-/* 直播计时器行: 横排, 发光等宽但比英雄版紧凑(预览才是主角) */
+/* 直播计时器行: 横排, 发光等宽 (英雄计时器, 保留广播灵魂) */
 .timer-row {
   display: flex; align-items: center; gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, var(--go-dim), rgba(14, 58, 34, 0.2));
+  background: linear-gradient(180deg, var(--go-dim-2), var(--go-dim));
   border: 1px solid var(--border-acc);
   border-left: 2px solid var(--go);
   border-radius: var(--radius);
 }
-.live-label { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--go); flex-shrink: 0; }
-.th-time { font-size: 24px; flex: 1; }
-.th-unit { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--fg-dim); text-transform: uppercase; flex-shrink: 0; }
+.live-label { font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--go); flex-shrink: 0; }
+.th-time { font-size: 26px; flex: 1; }
+.th-unit { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--fg-dim); text-transform: uppercase; flex-shrink: 0; }
 
-/* 上行参数: 紧凑终端风, 质量差(≥4)变琥珀 */
+/* 上行参数: 等宽终端风, 质量差(≥4)变琥珀 */
 .uplink-bar {
+  font-family: var(--font-mono);
   font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
   color: var(--fg-dim);
   background: var(--inset);
@@ -197,7 +204,7 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
 .actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center; }
 .spec { margin-left: auto; }
 
-.hint { font-size: 11.5px; color: var(--fg-dim); margin-top: var(--space-md); line-height: 1.7; }
+.hint { font-size: 12px; color: var(--fg-dim); margin-top: var(--space-md); line-height: 1.7; }
 .warn-box {
   border: 1px solid var(--split);
   border-left: 2px solid var(--split);
@@ -205,12 +212,12 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   background: var(--split-dim);
   border-radius: var(--radius);
   padding: var(--space-sm) var(--space-md);
-  font-size: 11px; line-height: 1.6;
+  font-size: 11.5px; line-height: 1.6;
   margin-top: var(--space-sm);
 }
 
 @media (max-width: 540px) {
-  .th-time { font-size: 20px; }
+  .th-time { font-size: 22px; }
   .th-unit { display: none; }
 }
 </style>
