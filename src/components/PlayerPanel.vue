@@ -8,8 +8,8 @@ const { sharing, micOn, compatMode, liveSince, startShare, stopShare, toggleMic,
 const previewRef = ref(null)
 
 async function onShare() {
-  // 固定 720p 30fps (省时长包; 高清存档交给选手本地 OBS)
-  await startShare({ small: props.small }, previewRef.value, false)
+  // 大流固定 720p (省时长包; 高清存档交给选手本地 OBS)
+  await startShare({ small: props.small }, previewRef.value)
 }
 
 // 进房后若 URL 带 auto=1, 延迟一点自动弹屏幕分享

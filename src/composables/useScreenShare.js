@@ -27,10 +27,11 @@ export function useScreenShare() {
     }
   }
 
-  async function startShare(cfg, previewEl, use1080) {
+  async function startShare(cfg, previewEl) {
     if (!joined.value) return
-    const vc = use1080 ? { frameRate: 30 } : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: 30 }
-    const mainProfile = use1080 ? '1080p' : '720p'   // 大流: 720p(HD 28元) 或 1080p(超高清 63元)
+    // 采集侧硬上限 1280×720/30fps (用 max 非 ideal, 防高分辨率显示器采集超规源再缩放浪费上行/CPU)
+    const vc = { width: { max: 1280 }, height: { max: 720 }, frameRate: { max: 30 } }
+    const mainProfile = '720p'   // 大流固定 720p (HD档 28元, 1500kbps, TRTC屏幕分享推荐值)
     const smallOpt = cfg.small ? SMALL_PROFILE : false
     bindScreenStopped()
     try {
@@ -54,7 +55,7 @@ export function useScreenShare() {
           try { await trtc.value.updateLocalAudio({ option: { audioTrack: aTrack } }); log('✅ 系统声音已接入主流') }
           catch (e2) { log('⚠ 系统声音接入失败, 可点「开麦」用麦克风: ' + e2.message) }
         }
-        log('✅ 已开播: 屏幕=主流 ' + (use1080 ? '1080p' : '720p') + ', 小流=' + (smallOpt ? '640×480/500kbps' : '关'))
+        log('✅ 已开播: 屏幕=主流 720p/1500kbps, 小流=' + (smallOpt ? '640×480/500kbps' : '关'))
       }
       sharing.value = true
       liveSince.value = Date.now()
