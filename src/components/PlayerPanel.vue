@@ -41,11 +41,11 @@ const elapsed = computed(() => {
 })
 
 // 推流实时参数行: 上行网络质量(NETWORK_QUALITY 事件每2秒刷新)
-// Web SDK v5 不提供分辨率/码率/帧率统计, 只给 RTT/丢包/质量等级(0-6)
+// Q0=没建立上行连接(没推流), 不显示; 推流后 Q1-6 才显示
 const QMAP = ['', '极佳', '良好', '一般', '较差', '很差', '断开']
 const uplinkText = computed(() => {
   const s = localStats.value
-  if (!s || s.upQ == null) return ''
+  if (!s || s.upQ == null || s.upQ === 0) return ''
   const q = QMAP[s.upQ] || ('Q' + s.upQ)
   const loss = s.upLoss != null ? '↑' + s.upLoss + '%' : ''
   const rtt = s.upRtt != null ? s.upRtt + 'ms' : ''

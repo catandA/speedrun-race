@@ -10,6 +10,7 @@ const focusedUid = ref(null)       // 当前全屏聚焦的选手, null = 网格
 const localStats = ref(null)       // 本地推流实时统计 (STATISTICS 事件, 选手推流参数显示用)
 
 let EV = {}
+let statsLogged = false   // NETWORK_QUALITY 首次诊断 log 标记
 
 export function useTrtc() {
   const { log } = useLog()
@@ -79,11 +80,14 @@ export function useTrtc() {
     if (E.AUTOPLAY_FAILED) t.on(E.AUTOPLAY_FAILED, () => { /* 触发 overlay, 由 App 处理 */ window.dispatchEvent(new CustomEvent('autoplay-failed')) })
     if (E.KICKED_OUT) t.on(E.KICKED_OUT, () => { log('⚠ 被踢出房间 (用户ID重复?)'); setStatus('被踢出', 'off') })
 
-    // NETWORK_QUALITY: 每2秒触发, 给 RTT/丢包/质量等级(0-6)。这是 Web SDK v5 唯一的网络统计事件
-    // (注意: Web SDK 没有 STATISTICS 事件, 也没有 getStats 方法, 分辨率/帧率靠 <video> 元素读)
-    // 选手用上行(uplink*), 裁判用下行(downlink* 平均值); 双方各自推流时也用上行
+    // NETWORK_QUALITY: 每2秒触发, 给 RTT/丢包/质量等级(0-6)。Web SDK v5 唯一的网络统计事件
     if (E.NETWORK_QUALITY) t.on(E.NETWORK_QUALITY, e => {
       try {
+        // 首次触发时 log 原始事件, 诊断字段名/值是否正确
+        if (!statsLogged) {
+          statsLogged = true
+          log('📊 网络质量事件已触发, 原始数据: ' + JSON.stringify({ upQ: e.uplinkNetworkQuality, upRtt: e.uplinkRTT, upLoss: e.uplinkLoss, dnQ: e.downlinkNetworkQuality, dnRtt: e.downlinkRTT, dnLoss: e.downlinkLoss }))
+        }
         localStats.value = {
           upRtt: e.uplinkRTT, upLoss: e.uplinkLoss, upQ: e.uplinkNetworkQuality,
           dnRtt: e.downlinkRTT, dnLoss: e.downlinkLoss, dnQ: e.downlinkNetworkQuality
@@ -265,6 +269,7 @@ export function useTrtc() {
     trtc.value = null
     focusedUid.value = null
     localStats.value = null
+    statsLogged = false
     setStatus('未连接', '')
   }
 

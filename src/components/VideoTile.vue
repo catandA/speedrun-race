@@ -20,14 +20,16 @@ function pollVideo() {
 }
 
 // 拉流参数: 分辨率(从video元素读) + 下行平均网络质量(NETWORK_QUALITY, 裁判侧所有选手共用下行均值)
+// Q0=没建立下行连接(没拉到流), 不显示; 只在直播中且 Q>0 或有分辨率时显示
 const QMAP = ['', '极佳', '良好', '一般', '较差', '很差', '断开']
 const statsText = computed(() => {
+  if (!isLive.value) return ''   // 待机/离线不显示
   const s = localStats.value
   const res = (vRes.value.w && vRes.value.h) ? (vRes.value.w + '×' + vRes.value.h) : ''
-  const q = s && s.dnQ != null ? QMAP[s.dnQ] : ''
-  const loss = s && s.dnLoss != null ? '↓' + s.dnLoss + '%' : ''
+  const q = (s && s.dnQ != null && s.dnQ > 0) ? QMAP[s.dnQ] : ''
+  const loss = (s && s.dnLoss != null && s.dnQ > 0) ? '↓' + s.dnLoss + '%' : ''
   if (props.tile.fullscreen) {
-    const rtt = s && s.dnRtt != null ? s.dnRtt + 'ms' : ''
+    const rtt = (s && s.dnRtt != null && s.dnQ > 0) ? s.dnRtt + 'ms' : ''
     return [res, q, loss, rtt].filter(Boolean).join(' ')
   }
   return [res, q, loss].filter(Boolean).join(' · ')
