@@ -10,7 +10,6 @@ const focusedUid = ref(null)       // 当前全屏聚焦的选手, null = 网格
 const localStats = ref(null)       // 本地推流实时统计 (STATISTICS 事件, 选手推流参数显示用)
 
 let EV = {}
-let statsLogged = false   // NETWORK_QUALITY 首次诊断 log 标记
 
 export function useTrtc() {
   const { log } = useLog()
@@ -83,11 +82,6 @@ export function useTrtc() {
     // NETWORK_QUALITY: 每2秒触发, 给 RTT/丢包/质量等级(0-6)。Web SDK v5 唯一的网络统计事件
     if (E.NETWORK_QUALITY) t.on(E.NETWORK_QUALITY, e => {
       try {
-        // 首次触发时 log 原始事件, 诊断字段名/值是否正确
-        if (!statsLogged) {
-          statsLogged = true
-          log('📊 网络质量事件已触发, 原始数据: ' + JSON.stringify({ upQ: e.uplinkNetworkQuality, upRtt: e.uplinkRTT, upLoss: e.uplinkLoss, dnQ: e.downlinkNetworkQuality, dnRtt: e.downlinkRTT, dnLoss: e.downlinkLoss }))
-        }
         localStats.value = {
           upRtt: e.uplinkRTT, upLoss: e.uplinkLoss, upQ: e.uplinkNetworkQuality,
           dnRtt: e.downlinkRTT, dnLoss: e.downlinkLoss, dnQ: e.downlinkNetworkQuality
@@ -137,6 +131,8 @@ export function useTrtc() {
       playing: {},
       streamType: null,
       currentSmall: null,   // 当前订阅所用 small 配置 (true=小流, false=大流, null=未订阅)
+      subscribing: false,   // 订阅异步进行中标记 (防重入)
+      pendingSmall: null,   // 订阅排队期间的新请求
       audio: false,
       muted: false,
       status: 'waiting',
@@ -180,30 +176,45 @@ export function useTrtc() {
   }
 
   // 订阅 / 切换大流小流. TRTC 不支持动态改 option, 配置变化时需 stop 后重新 start.
+  // 防重入: 同一 tile 的 subscribe 串行化, 避免stop未完成就start导致 stream already started
   function subscribeTile(tile) {
     if (!tile.streamType) return
-    if (!tile.videoEl) {
-      // 容器还没 mount, 稍后 VideoTile mounted 会调 retrySubscribe
+    if (!tile.videoEl) return   // 容器还没 mount, 稍后 VideoTile mounted 会调 retrySubscribe
+    const isFocused = focusedUid.value === tile.uid
+    const small = !isFocused
+
+    // 已在订阅中(异步未完成), 排队等本次完成后再决定; 防止重入撞车
+    if (tile.subscribing) {
+      tile.pendingSmall = small
       return
     }
-    const isFocused = focusedUid.value === tile.uid
-    const small = !isFocused   // 聚焦者大流, 其余小流
+    // 配置相同且正在播放, 无需操作
+    if (tile.playing[tile.streamType] && tile.currentSmall === small) return
 
-    if (tile.playing[tile.streamType]) {
-      if (tile.currentSmall === small) return   // 配置相同, 无需操作
-      // 大流 ↔ 小流切换, 先停止当前订阅
-      try { trtc.value.stopRemoteVideo({ userId: tile.uid, streamType: tile.streamType }) } catch (x) {}
-      tile.playing[tile.streamType] = false
-    }
-
-    trtc.value.startRemoteVideo({ userId: tile.uid, streamType: tile.streamType, view: tile.videoEl, option: { small } })
-      .then(() => {
+    tile.subscribing = true
+    const run = async () => {
+      try {
+        // 大流 ↔ 小流切换: 先 stop, await 确保停完再 start
+        if (tile.playing[tile.streamType]) {
+          try { await trtc.value.stopRemoteVideo({ userId: tile.uid, streamType: tile.streamType }) } catch (x) {}
+          tile.playing[tile.streamType] = false
+        }
+        const wantSmall = tile.pendingSmall != null ? tile.pendingSmall : small
+        tile.pendingSmall = null
+        await trtc.value.startRemoteVideo({ userId: tile.uid, streamType: tile.streamType, view: tile.videoEl, option: { small: wantSmall } })
         tile.playing[tile.streamType] = true
-        tile.currentSmall = small
+        tile.currentSmall = wantSmall
         tile.status = 'live'
         updateTileUI(tile)
-      })
-      .catch(e => log('⚠ 拉流失败 ' + tile.uid + ': ' + e.message))
+      } catch (e) {
+        log('⚠ 拉流失败 ' + tile.uid + ': ' + e.message)
+      } finally {
+        tile.subscribing = false
+        // 排队期间又有新请求, 再跑一次
+        if (tile.pendingSmall != null && (tile.currentSmall !== tile.pendingSmall)) subscribeTile(tile)
+      }
+    }
+    run()
   }
 
   function retrySubscribe(uid) {
@@ -269,7 +280,6 @@ export function useTrtc() {
     trtc.value = null
     focusedUid.value = null
     localStats.value = null
-    statsLogged = false
     setStatus('未连接', '')
   }
 
