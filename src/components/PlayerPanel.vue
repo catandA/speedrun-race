@@ -152,13 +152,11 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
   border-color: var(--go);
   box-shadow: 0 0 0 1px var(--go), 0 0 28px -8px var(--go), var(--shadow);
 }
-/* 屏幕分享预览: SDK 把本地视频当摄像头渲染默认镜像, 但屏幕内容镜像后文字反着看不清。
-   反转回来仅影响本地预览渲染, 不影响推流内容(轨道本身不镜像, 裁判侧正常)。 */
+/* 屏幕分享预览: 原样显示, 不镜像 (屏幕内容镜像后文字/游戏 UI 会反) */
 .preview :deep(video) {
   width: 100%; height: 100%;
   object-fit: contain;
   position: relative; z-index: 1;
-  transform: scaleX(-1);
 }
 .preview-empty {
   position: absolute; inset: 0;
