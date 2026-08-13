@@ -5,38 +5,44 @@ import { useTrtc } from '../composables/useTrtc'
 const props = defineProps({ tile: Object })
 const emit = defineEmits(['click', 'mute'])
 
-const { retrySubscribe } = useTrtc()
+const { retrySubscribe, localStats } = useTrtc()
 const videoRef = ref(null)
 
 const isOffline = computed(() => props.tile.status === 'offline')
 const isLive = computed(() => props.tile.status === 'live')
 
-// 拉流实时参数 (STATISTICS 每2秒刷新写入 tile.stats): 分辨率/码率/帧率/丢包/RTT
-// 小格精简(码率+丢包), 全屏详细(全量); 丢包>5% 视为网络差, 文字变琥珀警示
+// 分辨率/帧率: Web SDK v5 不提供, 从 <video> 元素轮询读 videoWidth/videoHeight
+const vRes = ref({ w: 0, h: 0 })
+let pollTimer = null
+function pollVideo() {
+  const v = videoRef.value && videoRef.value.querySelector('video')
+  if (v && v.videoWidth) vRes.value = { w: v.videoWidth, h: v.videoHeight }
+}
+
+// 拉流参数: 分辨率(从video元素读) + 下行平均网络质量(NETWORK_QUALITY, 裁判侧所有选手共用下行均值)
+const QMAP = ['', '极佳', '良好', '一般', '较差', '很差', '断开']
 const statsText = computed(() => {
-  const s = props.tile.stats
-  if (!s || (!s.w && !s.kbps)) return ''
-  const kbps = s.kbps != null ? (s.kbps >= 1000 ? (s.kbps / 1000).toFixed(1) + 'M' : s.kbps + 'k') : ''
-  const loss = s.loss != null ? '↑' + s.loss + '%' : ''
+  const s = localStats.value
+  const res = (vRes.value.w && vRes.value.h) ? (vRes.value.w + '×' + vRes.value.h) : ''
+  const q = s && s.dnQ != null ? QMAP[s.dnQ] : ''
+  const loss = s && s.dnLoss != null ? '↓' + s.dnLoss + '%' : ''
   if (props.tile.fullscreen) {
-    const res = (s.w && s.h) ? (s.w + '×' + s.h) : ''
-    const fps = s.fps != null ? s.fps + 'fps' : ''
-    const rtt = s.rtt != null ? s.rtt + 'ms' : ''
-    return [res, kbps, fps, loss, rtt].filter(Boolean).join(' ')
+    const rtt = s && s.dnRtt != null ? s.dnRtt + 'ms' : ''
+    return [res, q, loss, rtt].filter(Boolean).join(' ')
   }
-  return [kbps, loss].filter(Boolean).join(' ')
+  return [res, q, loss].filter(Boolean).join(' · ')
 })
-const statsBad = computed(() => (props.tile.stats && props.tile.stats.loss != null && props.tile.stats.loss > 5) || (props.tile.stats && props.tile.stats.rtt != null && props.tile.stats.rtt > 300))
+const statsBad = computed(() => localStats.value && localStats.value.dnQ != null && localStats.value.dnQ >= 4)
 
 onMounted(() => {
-  // 把视频容器 DOM 注入 tile, 供 TRTC startRemoteVideo 的 view 使用
   props.tile.videoEl = videoRef.value
-  // 容器就绪后, 若该 tile 已在等待订阅, 触发一次订阅
   retrySubscribe(props.tile.uid)
+  pollTimer = setInterval(pollVideo, 1000)
 })
 
 onBeforeUnmount(() => {
   props.tile.videoEl = null
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 
