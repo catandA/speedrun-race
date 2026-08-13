@@ -10,14 +10,14 @@
   --bg: #0a0b11;
   --bg-1: #07080c;
   --surface: #11131c;
-  --surface-2: #161924;
-  --surface-3: #1e2230;
-  --surface-hi: #262b3a;
+  --surface-2: #1a1c24;
+  --surface-3: #23262f;
+  --surface-hi: #2d3142;
   --inset: #06070b;
 
-  /* —— 描边: 更克制, 不抢内容 —— */
+  /* —— 描边 —— */
   --border: #20232f;
-  --border-strong: #2d3142;
+  --border-strong: #3a3d48;
   --border-acc: #1f6b3f;
 
   /* —— 文字 —— */
@@ -35,9 +35,9 @@
   --bad: #ff5277;      /* 离线 / 失败 */
   --bad-dim: rgba(255, 82, 119, 0.13);
 
-  /* —— 圆角: 略放大更现代, 但不气泡 —— */
-  --radius-sm: 4px;
-  --radius: 7px;
+  /* —— 圆角: 控件方角利落, 面板稍大 —— */
+  --radius-sm: 3px;
+  --radius: 4px;
   --radius-lg: 11px;
 
   /* —— 深度: 柔和分层投影 (取代扁平 + 绿顶边) —— */
@@ -190,8 +190,8 @@ label {
   padding: 9px 16px;
   font-size: 13px;
   font-weight: 600;
-  font-family: var(--font-sans);
-  letter-spacing: 0.2px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.14s var(--ease-out-quart), border-color 0.14s, color 0.14s, transform 0.1s var(--ease-out-quart);
