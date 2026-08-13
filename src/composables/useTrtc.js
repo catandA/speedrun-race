@@ -7,6 +7,7 @@ const joined = ref(false)
 const status = reactive({ text: '未连接', cls: '' })
 const tiles = reactive({})        // uid -> tile 对象 (reactive)
 const focusedUid = ref(null)       // 当前全屏聚焦的选手, null = 网格模式
+const localStats = ref(null)       // 本地推流实时统计 (STATISTICS 事件, 选手推流参数显示用)
 
 let EV = {}
 
@@ -78,6 +79,36 @@ export function useTrtc() {
     if (E.AUTOPLAY_FAILED) t.on(E.AUTOPLAY_FAILED, () => { /* 触发 overlay, 由 App 处理 */ window.dispatchEvent(new CustomEvent('autoplay-failed')) })
     if (E.KICKED_OUT) t.on(E.KICKED_OUT, () => { log('⚠ 被踢出房间 (用户ID重复?)'); setStatus('被踢出', 'off') })
 
+    // STATISTICS: 每2秒回调一次, 含本地推流+远端拉流实时参数 (分辨率/码率/帧率/丢包/RTT)
+    // 选手侧: localStatistics 显示自己的推流参数; 裁判侧: remoteStatistics 显示每个选手的拉流参数
+    if (E.STATISTICS) t.on(E.STATISTICS, e => {
+      try {
+        // 本地推流统计: 选手推主流(屏幕轨道), 取主流那项 (双流编码时 localStatistics 可能含大小流两项)
+        const ls = e.localStatistics
+        if (ls) {
+          const arr = Array.isArray(ls) ? ls : [ls]
+          const main = arr.find(x => !x.streamType || x.streamType === 'main' || x.streamType === (TRTC.TYPE && TRTC.TYPE.STREAM_TYPE_MAIN)) || arr[0]
+          if (main && (main.width || main.videoBitrate)) {
+            localStats.value = {
+              w: main.width, h: main.height, fps: main.frameRate, kbps: main.videoBitrate,
+              upLoss: e.upLoss, rtt: e.rtt
+            }
+          }
+        }
+        // 远端拉流统计: 写入对应 tile, VideoTile 自动响应显示
+        if (Array.isArray(e.remoteStatistics)) {
+          e.remoteStatistics.forEach(r => {
+            const tile = tiles[r.userId]
+            if (!tile) return
+            tile.stats = {
+              w: r.width, h: r.height, fps: r.frameRate, kbps: r.videoBitrate,
+              loss: r.videoPacketLoss, rtt: r.remoteNetworkRTT
+            }
+          })
+        }
+      } catch (x) { /* 统计解析失败不影响通话 */ }
+    })
+
     if (!cfg.isJudge) return
 
     // 裁判: 远端用户/流管理 (统一订阅, 聚焦者拉大流, 其余拉小流)
@@ -125,7 +156,8 @@ export function useTrtc() {
       status: 'waiting',
       fullscreen: false,    // 是否全屏显示
       videoEl: null,        // VideoTile 组件 mounted 时注入 DOM 容器
-      statusText: '等待推流'
+      statusText: '等待推流',
+      stats: null           // 拉流实时统计 (STATISTICS 事件写入: 分辨率/码率/帧率/丢包/RTT)
     })
     tiles[uid] = tile
     return tile
@@ -251,11 +283,12 @@ export function useTrtc() {
     joined.value = false
     trtc.value = null
     focusedUid.value = null
+    localStats.value = null
     setStatus('未连接', '')
   }
 
   return {
-    trtc, joined, status, tiles, focusedUid,
+    trtc, joined, status, tiles, focusedUid, localStats,
     join, leave,
     ensureTile, retrySubscribe, subscribeTile, unsubscribeTile,
     tileClick, toggleMute, updateTileUI,

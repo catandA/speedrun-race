@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useScreenShare } from '../composables/useScreenShare'
+import { useTrtc } from '../composables/useTrtc'
 
 const props = defineProps({ small: String, autoShare: Boolean })
 const { sharing, micOn, compatMode, liveSince, startShare, stopShare, toggleMic, toggleCompat } = useScreenShare()
+const { localStats } = useTrtc()
 
 const previewRef = ref(null)
 
@@ -37,6 +39,18 @@ const elapsed = computed(() => {
   const sec = String(s % 60).padStart(2, '0')
   return h + ':' + m + ':' + sec
 })
+
+// 推流实时参数行: 实际编码分辨率/码率/帧率 + 上行丢包/RTT (STATISTICS 事件每2秒刷新)
+const uplinkText = computed(() => {
+  const s = localStats.value
+  if (!s || (!s.w && !s.kbps)) return ''
+  const res = (s.w && s.h) ? (s.w + '×' + s.h) : '—'
+  const kbps = s.kbps != null ? (s.kbps >= 1000 ? (s.kbps / 1000).toFixed(1) + 'M' : s.kbps + 'k') : '—'
+  const fps = s.fps != null ? s.fps + 'fps' : ''
+  const loss = s.upLoss != null ? '↑' + s.upLoss + '%' : ''
+  const rtt = s.rtt != null ? s.rtt + 'ms' : ''
+  return [res, kbps, fps, loss, rtt].filter(Boolean).join(' · ')
+})
 </script>
 
 <template>
@@ -64,6 +78,9 @@ const elapsed = computed(() => {
         <span class="th-unit">ELAPSED</span>
       </div>
     </div>
+
+    <!-- 推流实时参数: 实际编码分辨率/码率/帧率/上行丢包/RTT (STATISTICS 每2秒刷新) -->
+    <div class="uplink-bar" v-if="uplinkText">{{ uplinkText }}</div>
 
     <div class="actions">
       <button v-if="!sharing" class="btn green" @click="onShare">
@@ -147,6 +164,18 @@ const elapsed = computed(() => {
 .th-time { font-size: 40px; flex: 1; text-align: center; }
 .th-right { flex-shrink: 0; }
 .th-unit { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: var(--fg-dim); text-transform: uppercase; }
+
+/* 推流实时参数行: 紧贴计时器下方, 终端风小字, 丢包高时变琥珀警示 */
+.uplink-bar {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--fg-dim);
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 11px;
+  margin: -8px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
 @media (max-width: 560px) {
   .th-time { font-size: 30px; }
   .timer-hero { gap: 10px; padding: 12px 14px; }

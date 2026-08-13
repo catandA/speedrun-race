@@ -11,6 +11,23 @@ const videoRef = ref(null)
 const isOffline = computed(() => props.tile.status === 'offline')
 const isLive = computed(() => props.tile.status === 'live')
 
+// 拉流实时参数 (STATISTICS 每2秒刷新写入 tile.stats): 分辨率/码率/帧率/丢包/RTT
+// 小格精简(码率+丢包), 全屏详细(全量); 丢包>5% 视为网络差, 文字变琥珀警示
+const statsText = computed(() => {
+  const s = props.tile.stats
+  if (!s || (!s.w && !s.kbps)) return ''
+  const kbps = s.kbps != null ? (s.kbps >= 1000 ? (s.kbps / 1000).toFixed(1) + 'M' : s.kbps + 'k') : ''
+  const loss = s.loss != null ? '↑' + s.loss + '%' : ''
+  if (props.tile.fullscreen) {
+    const res = (s.w && s.h) ? (s.w + '×' + s.h) : ''
+    const fps = s.fps != null ? s.fps + 'fps' : ''
+    const rtt = s.rtt != null ? s.rtt + 'ms' : ''
+    return [res, kbps, fps, loss, rtt].filter(Boolean).join(' ')
+  }
+  return [kbps, loss].filter(Boolean).join(' ')
+})
+const statsBad = computed(() => (props.tile.stats && props.tile.stats.loss != null && props.tile.stats.loss > 5) || (props.tile.stats && props.tile.stats.rtt != null && props.tile.stats.rtt > 300))
+
 onMounted(() => {
   // 把视频容器 DOM 注入 tile, 供 TRTC startRemoteVideo 的 view 使用
   props.tile.videoEl = videoRef.value
@@ -61,6 +78,7 @@ onBeforeUnmount(() => {
     <div class="meta">
       <span class="name">{{ tile.uid }}</span>
       <span class="st">{{ tile.statusText }}</span>
+      <span class="stats" v-if="statsText" :class="{ bad: statsBad }">{{ statsText }}</span>
     </div>
   </div>
 </template>
@@ -154,5 +172,13 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 .meta .name { font-weight: 700; color: #fff; }
-.meta .st { color: var(--fg-dim); font-size: 10.5px; margin-left: auto; }
+.meta .st { color: var(--fg-dim); font-size: 10.5px; }
+.meta .stats {
+  margin-left: auto;
+  color: var(--fg-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+.meta .stats.bad { color: var(--split); }   /* 丢包>5% 或 RTT>300ms 变琥珀警示 */
 </style>
