@@ -8,6 +8,11 @@ export const DEFAULTS = { sdkAppId: 1600156752, room: 'race1' }
 // 想换盐需改源码重新部署, 但盐是长期密钥不必常改 —— 不再有"改口令要重新部署"的问题。
 export const JUDGE_SALT = 'sr-race-judge-2026-7f3a9e1b4c8d'
 
+// 小流编码参数: 640×480 / 500kbps / 15fps
+// 落在计费 SD 档(≤640×480, 300-900kbps) 14元/千分钟。
+// 用 500 而非 900: 留余量防网络波动实际码率超 900 掉到 HD 档(28元); 屏幕预览够清晰。
+export const SMALL_PROFILE = { width: 640, height: 480, bitrate: 500, frameRate: 15 }
+
 export function parseConfig() {
   const qs = new URLSearchParams(location.search)
   return {
@@ -18,6 +23,6 @@ export function parseConfig() {
     isJudge: qs.get('judge') === '1',
     judgeToken: (qs.get('jt') || '').trim(),
     autoShare: qs.get('auto') === '1',
-    small: qs.get('small') || '120p'
+    small: qs.get('small') !== '0'   // 默认开小流; small=0 关闭。具体编码参数见 SMALL_PROFILE
   }
 }

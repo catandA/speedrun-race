@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useTrtc } from './useTrtc'
 import { useLog } from './useLog'
+import { SMALL_PROFILE } from './useConfig'
 
 const sharing = ref(false)
 const micOn = ref(false)
@@ -29,6 +30,8 @@ export function useScreenShare() {
   async function startShare(cfg, previewEl, use1080) {
     if (!joined.value) return
     const vc = use1080 ? { frameRate: 30 } : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: 30 }
+    const mainProfile = use1080 ? '1080p' : '720p'   // 大流: 720p(HD 28元) 或 1080p(超高清 63元)
+    const smallOpt = cfg.small ? SMALL_PROFILE : false
     bindScreenStopped()
     try {
       if (compatMode.value) {
@@ -41,17 +44,17 @@ export function useScreenShare() {
         const aTrack = ds.getAudioTracks()[0] || null
         ds.getVideoTracks().forEach(tr => tr.addEventListener('ended', () => onScreenEnded()))
         try {
-          await trtc.value.startLocalVideo({ view: previewEl, option: { videoTrack: screenTrack, small: cfg.small } })
+          await trtc.value.startLocalVideo({ view: previewEl, option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt } })
         } catch (e1) {
           log('⚠ 直接注入屏幕轨道失败, 走降级: ' + e1.message)
           await trtc.value.startLocalVideo({ view: previewEl })
-          await trtc.value.updateLocalVideo({ option: { videoTrack: screenTrack, small: cfg.small } })
+          await trtc.value.updateLocalVideo({ option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt } })
         }
         if (aTrack) {
           try { await trtc.value.updateLocalAudio({ option: { audioTrack: aTrack } }); log('✅ 系统声音已接入主流') }
           catch (e2) { log('⚠ 系统声音接入失败, 可点「开麦」用麦克风: ' + e2.message) }
         }
-        log('✅ 已开播: 屏幕=主流' + (use1080 ? ' 1080p' : ' 720p') + ', 小流=' + cfg.small)
+        log('✅ 已开播: 屏幕=主流 ' + (use1080 ? '1080p' : '720p') + ', 小流=' + (smallOpt ? '640×480/500kbps' : '关'))
       }
       sharing.value = true
       liveSince.value = Date.now()
