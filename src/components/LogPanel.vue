@@ -25,8 +25,8 @@ function toggle() { expanded.value = !expanded.value }
 </script>
 
 <template>
-  <div class="log-card" :class="variant">
-    <div class="log-head" @click="toggle">
+  <div class="log-card" :class="[variant, { expanded }]">
+    <button type="button" class="log-head" @click="toggle" :aria-expanded="expanded" aria-controls="log-body">
       <span class="title">RUN LOG</span>
       <span class="count" v-if="logs.length">{{ logs.length }}</span>
       <!-- 折叠时单行预览最新一条, 不必展开也能看到关键信息 -->
@@ -35,10 +35,10 @@ function toggle() { expanded.value = !expanded.value }
         <span class="latest-msg">{{ latest.msg }}</span>
       </span>
       <span class="spacer"></span>
-      <button v-if="logs.length" class="clear" @click.stop="clear" title="清空日志">CLEAR</button>
-      <button class="toggle" :title="expanded ? '收起' : '展开日志'">{{ expanded ? '▾' : '▸' }}</button>
-    </div>
-    <div class="log-body" ref="el" v-show="expanded">
+      <span v-if="logs.length" class="clear" role="button" tabindex="-1" @click.stop="clear" @keydown.stop.enter="clear" title="清空日志">CLEAR</span>
+      <span class="toggle" aria-hidden="true">{{ expanded ? '▾' : '▸' }}</span>
+    </button>
+    <div class="log-body" ref="el" id="log-body" role="log" aria-live="polite">
       <div v-for="(l, i) in logs" :key="i" class="log-line">
         <span class="log-time">{{ l.t }}</span>
         <span class="log-msg">{{ l.msg }}</span>
@@ -65,16 +65,22 @@ function toggle() { expanded.value = !expanded.value }
 
 .log-head {
   display: flex; align-items: center; gap: var(--space-sm);
+  width: 100%;
   padding: var(--space-sm) var(--space-md);
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: var(--radius);
   cursor: pointer;
   user-select: none;
-  transition: background 0.12s;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: background 0.12s, border-radius 0.12s;
 }
+/* 展开时 head 与 body 连接: 去底边 + 顶部圆角 */
+.log-card.expanded .log-head { border-bottom: none; border-radius: var(--radius) var(--radius) 0 0; }
 .log-head:hover { background: linear-gradient(180deg, var(--surface-3), var(--surface-2)); }
+.log-head:focus-visible { outline: 2px solid var(--go); outline-offset: -2px; }
 .title {
   font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -104,30 +110,37 @@ function toggle() { expanded.value = !expanded.value }
   color: var(--fg-mute);
   background: transparent; border: 1px solid var(--border); cursor: pointer;
   padding: 2px 7px; border-radius: var(--radius-sm);
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
   flex-shrink: 0;
 }
-.clear:hover { color: var(--bad); border-color: var(--bad); }
+.clear:hover { color: var(--bad); border-color: var(--bad); background: var(--bad-dim); }
 .toggle {
   background: transparent; border: none; cursor: pointer;
   color: var(--fg-dim); font-size: 12px; padding: 2px 4px;
   flex-shrink: 0;
+  transition: color 0.12s, transform 0.18s var(--ease-out-quart);
 }
-.toggle:hover { color: var(--go); }
+.log-card.expanded .toggle { transform: rotate(0deg); }
+.log-head:hover .toggle { color: var(--go); }
 
 .log-body {
   background: var(--inset);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
+  border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  padding: var(--space-sm) var(--space-md);
+  padding: 0 var(--space-md);
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--fg-dim);
   overflow: auto;
   line-height: 1.65;
+  max-height: 0;
+  transition: max-height 0.24s var(--ease-out-quart), padding 0.24s var(--ease-out-quart), border-color 0.16s;
 }
-.log-card.bottom .log-body { max-height: 180px; }
-.log-card.sidebar .log-body { max-height: 260px; }
+.log-card.expanded .log-body { border-color: var(--border); }
+.log-card.expanded .log-body { padding: var(--space-sm) var(--space-md); }
+.log-card.bottom.expanded .log-body { max-height: 180px; }
+.log-card.sidebar.expanded .log-body { max-height: 260px; }
 
 .log-line { display: flex; gap: var(--space-sm); padding: 1px 0; }
 .log-time { color: var(--fg-mute); flex-shrink: 0; }

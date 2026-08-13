@@ -21,6 +21,7 @@ const list = computed(() => Object.values(tiles))
       @mute="toggleMute"
     />
     <div v-if="!list.length" class="empty">
+      <svg class="empty-ic" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M22 8l-6 4 6 4z"/></svg>
       <span class="ph-t">NO INPUT</span>
       <span>等待选手加入房间…</span>
     </div>
@@ -48,4 +49,5 @@ const list = computed(() => Object.values(tiles))
   box-shadow: var(--shadow-sm);
 }
 .empty .ph-t { font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
+.empty-ic { color: var(--fg-mute); opacity: 0.35; margin-bottom: var(--space-sm); }
 </style>

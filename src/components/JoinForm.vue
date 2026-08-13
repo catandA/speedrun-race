@@ -3,12 +3,14 @@ import { ref, reactive, onMounted } from 'vue'
 import { JUDGE_SALT } from '../composables/useConfig'
 import { genUserSig, compressUserSig, genJudgeToken } from '../composables/useUserSig'
 import { useLog } from '../composables/useLog'
+import { useToast } from '../composables/useToast'
 
 const props = defineProps({
   initial: Object   // { room, userId, userSig, isJudge, judgeToken }
 })
 const emit = defineEmits(['join'])
 const { log } = useLog()
+const toast = useToast()
 
 const room = ref(props.initial.room)
 const userId = ref(props.initial.userId)
@@ -103,6 +105,7 @@ async function genLinks() {
     outLinks.value = lines.join('\n')
     genHint.value = '已生成 ' + lines.length + ' 条链接, 有效期 ' + (expire / 86400) + ' 天。链接含签名, 只发给对应选手本人。'
     log('✅ 已生成 ' + lines.length + ' 条链接 (有效期 ' + (expire / 86400) + ' 天)')
+    toast.ok('已生成 ' + lines.length + ' 条链接')
   } catch (e) {
     log('❌ 生成失败: ' + (e && e.message ? e.message : e))
   } finally {
@@ -110,15 +113,22 @@ async function genLinks() {
   }
 }
 
+const copied = ref(false)
 function copyAll() {
   if (!outLinks.value) return
+  const done = () => {
+    log('✅ 已复制全部链接')
+    toast.ok('已复制全部链接')
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1200)
+  }
   navigator.clipboard.writeText(outLinks.value)
-    .then(() => log('✅ 已复制全部链接'))
+    .then(done)
     .catch(() => {
       const ta = document.createElement('textarea')
       ta.value = outLinks.value
       document.body.appendChild(ta); ta.select()
-      try { document.execCommand('copy'); log('✅ 已复制全部链接') } catch (e) { log('⚠ 复制失败, 请手动全选复制') }
+      try { document.execCommand('copy'); done() } catch (e) { log('⚠ 复制失败, 请手动全选复制'); toast.bad('复制失败, 请手动全选') }
       document.body.removeChild(ta)
     })
 }
@@ -206,6 +216,7 @@ function copyAll() {
         <span class="lock-tip">密钥不出浏览器</span>
       </summary>
 
+      <div class="org-body-wrap">
       <div class="org-body">
         <div class="field">
           <label for="o-key">应用密钥 SecretKey</label>
@@ -243,13 +254,14 @@ function copyAll() {
             <span class="spin" v-if="genLoading" aria-hidden="true"></span>
             {{ genLoading ? '生成中…' : '生成链接' }}
           </button>
-          <button class="btn ghost" @click="copyAll">复制全部</button>
+          <button class="btn ghost" :class="{ ok: copied }" @click="copyAll">{{ copied ? '已复制 ✓' : '复制全部' }}</button>
         </div>
 
         <div class="field">
           <textarea v-model="outLinks" rows="6" readonly placeholder="生成的带签名链接会出现在这里, 复制后分别发给对应选手"></textarea>
           <p class="field-hint">{{ genHint }}</p>
         </div>
+      </div>
       </div>
     </details>
   </section>
@@ -291,6 +303,8 @@ function copyAll() {
   text-align: left;
 }
 .role-tab:hover { border-color: var(--surface-hi); transform: translateY(-1px); }
+.role-tab:active { transform: translateY(0); }
+.role-tab:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
 .role-tab.active {
   border-color: var(--go);
   background: linear-gradient(180deg, var(--go-dim-2), var(--go-dim));
@@ -347,29 +361,35 @@ function copyAll() {
 .hint-k { color: var(--go); font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
 .warn-text { font-size: 11.5px; color: var(--split); margin-top: var(--space-sm); }
 
-/* 组织者工具: 独立折叠区块 */
-.org-tool { margin-top: var(--space-2xl); }
+/* 组织者工具: 独立折叠区块 (grid 0fr→1fr 高度动画, 取代原生瞬变) */
+.org-tool { margin-top: var(--space-2xl); display: grid; grid-template-rows: auto 0fr; transition: grid-template-rows 0.28s var(--ease-out-quart); }
+.org-tool[open] { grid-template-rows: auto 1fr; }
 .org-tool > summary {
   display: flex; align-items: center; gap: var(--space-sm);
   cursor: pointer; user-select: none;
   list-style: none;
   font-size: 12.5px; font-weight: 600; color: var(--fg-dim);
-  padding: 6px 0;
+  padding: 6px 2px;
   transition: color 0.12s;
 }
 .org-tool > summary::-webkit-details-marker { display: none; }
 .org-tool > summary:hover { color: var(--fg); }
-.caret { color: var(--go); width: 10px; display: inline-block; transition: transform 0.12s; }
+.org-tool > summary:focus-visible { outline: 2px solid var(--go); outline-offset: 3px; border-radius: var(--radius-sm); }
+.caret { color: var(--go); width: 10px; display: inline-block; transition: transform 0.18s var(--ease-out-quart); }
 .org-tool[open] .caret { transform: rotate(90deg); }
 .lock-tip { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--go); background: var(--go-dim); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-acc); }
 .org-tool[open] > summary { margin-bottom: var(--space-md); }
 
+.org-body-wrap { overflow: hidden; min-height: 0; }
 .org-body {
   padding: var(--space-lg);
   background: var(--inset);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* 复制成功: 按钮短暂切绿确认 */
+.btn.ghost.ok { color: var(--go); border-color: var(--go); background: var(--go-dim); }
 
 .row { display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap; margin: var(--space-md) 0; }
 .chk { display: inline-flex; gap: var(--space-sm); align-items: center; font-size: 12px; color: var(--fg-dim); cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 400; margin: var(--space-sm) 0 0; }

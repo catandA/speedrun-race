@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 defineProps({
   room: String,
   role: String,
@@ -7,10 +8,16 @@ defineProps({
   joined: Boolean
 })
 defineEmits(['leave'])
+
+// 滚动后叠阴影, 让 sticky 顶栏与内容"浮起分离"有控制台感
+const scrolled = ref(false)
+function onScroll() { scrolled.value = window.scrollY > 4 }
+onMounted(() => { onScroll(); window.addEventListener('scroll', onScroll, { passive: true }) })
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
-  <header class="topbar">
+  <header class="topbar" :class="{ scrolled }">
     <div class="brand">
       <span class="mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M13.5 1 4 13.2c-.5.6-.1 1.5.7 1.5H11l-1.6 7.7c-.2.9.9 1.4 1.4.7L20 10.9c.5-.6.1-1.5-.7-1.5H13l.5-7.4c.1-.8-.8-1.3-1.3-.6z"/></svg>
@@ -32,7 +39,7 @@ defineEmits(['leave'])
       <span class="dot"></span>{{ statusText }}
     </span>
 
-    <button v-if="joined" class="btn ghost sm leave" @click="$emit('leave')">
+    <button v-if="joined" class="btn ghost sm leave" @click="$emit('leave')" aria-label="退出房间">
       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       退出
     </button>
@@ -54,6 +61,12 @@ defineEmits(['leave'])
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
+  transition: box-shadow 0.2s var(--ease-out-quart), border-color 0.2s;
+}
+/* 滚动后: 阴影浮起 + 描边加深, 与内容分离 */
+.topbar.scrolled {
+  box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.6);
+  border-bottom-color: var(--border-strong);
 }
 
 .brand { display: flex; align-items: center; gap: var(--space-md); }

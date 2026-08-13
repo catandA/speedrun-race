@@ -5,6 +5,7 @@ import { precheckUserSig, verifyJudgeToken } from './composables/useUserSig'
 import { useTrtc } from './composables/useTrtc'
 import { useScreenShare } from './composables/useScreenShare'
 import { useLog } from './composables/useLog'
+import { useToast } from './composables/useToast'
 import HeaderBar from './components/HeaderBar.vue'
 import JoinForm from './components/JoinForm.vue'
 import PlayerPanel from './components/PlayerPanel.vue'
@@ -12,11 +13,13 @@ import JudgePanel from './components/JudgePanel.vue'
 import VideoGrid from './components/VideoGrid.vue'
 import LogPanel from './components/LogPanel.vue'
 import AutoplayOverlay from './components/AutoplayOverlay.vue'
+import ToastContainer from './components/ToastContainer.vue'
 
 const cfg = parseConfig()
 const { joined, status, tiles, focusedUid, join: trtcJoin, leave: trtcLeave, tileClick, toggleMute } = useTrtc()
 const { stopShare } = useScreenShare()
 const { log } = useLog()
+const toast = useToast()
 
 const roomLabel = computed(() => '房间: ' + cfg.room)
 const roleLabel = computed(() => '角色: ' + (cfg.isJudge ? '裁判' : '选手') + ' (' + cfg.userId + ')')
@@ -44,6 +47,7 @@ async function onJoin(form) {
   const pre = await precheckUserSig(cfg.userSig, cfg.userId, cfg.sdkAppId)
   if (pre.length) { pre.forEach(m => log('⚠ ' + m)); return }
   await trtcJoin(cfg)
+  toast.ok(cfg.isJudge ? '已进入裁判台' : '已进入直播间')
 }
 
 async function onLeave() {
@@ -71,6 +75,7 @@ async function autoLeaveForHidden() {
   try { await stopShare() } catch (x) {}
   await trtcLeave()
   log('⚠ 因后台超时已自动退房 (避免持续计费), 回来请重新进房')
+  toast.warn('后台超时已自动退房')
 }
 
 function onVisibility() {
@@ -159,28 +164,44 @@ onBeforeUnmount(() => {
     @leave="onLeave"
   />
 
-  <!-- 未进房: 角色分流进房 + 底部日志 -->
-  <template v-if="!joined">
-    <JoinForm :initial="cfg" @join="onJoin" />
-    <LogPanel variant="bottom" />
-  </template>
+  <!-- 视图切换: 进房/退房像广播台切信号源, out-in 避免重叠 -->
+  <Transition name="view" mode="out-in">
+    <!-- 未进房: 角色分流进房 + 底部日志 -->
+    <section v-if="!joined" key="join" class="view-stage">
+      <JoinForm :initial="cfg" @join="onJoin" />
+      <LogPanel variant="bottom" />
+    </section>
 
-  <!-- 选手工作区: 预览为主 (PlayerPanel 内部重排) -->
-  <template v-else-if="!cfg.isJudge">
-    <PlayerPanel :small="cfg.small" :auto-share="cfg.autoShare" />
-    <LogPanel variant="bottom" />
-  </template>
+    <!-- 选手工作区: 预览为主 (PlayerPanel 内部重排) -->
+    <section v-else-if="!cfg.isJudge" key="player" class="view-stage">
+      <PlayerPanel :small="cfg.small" :auto-share="cfg.autoShare" />
+      <LogPanel variant="bottom" />
+    </section>
 
-  <!-- 裁判工作区: 侧栏(状态+日志) + 主视频区 -->
-  <div v-else class="workspace">
-    <aside class="sidebar">
-      <JudgePanel :count="onlineCount" :focused="hasFocus" />
-      <LogPanel variant="sidebar" />
-    </aside>
-    <main class="main-area">
-      <VideoGrid />
-    </main>
-  </div>
+    <!-- 裁判工作区: 侧栏(状态+日志) + 主视频区 -->
+    <div v-else key="judge" class="workspace view-stage">
+      <aside class="sidebar">
+        <JudgePanel :count="onlineCount" :focused="hasFocus" />
+        <LogPanel variant="sidebar" />
+      </aside>
+      <main class="main-area">
+        <VideoGrid />
+      </main>
+    </div>
+  </Transition>
 
   <AutoplayOverlay />
+  <ToastContainer />
 </template>
+
+<style scoped>
+/* 视图切换: 淡入 + 轻微上移, 像信号源切换 */
+.view-stage { position: relative; }
+.view-enter-from { opacity: 0; transform: translateY(10px); }
+.view-leave-to { opacity: 0; transform: translateY(-6px); }
+.view-enter-active { transition: opacity 0.22s var(--ease-out-expo), transform 0.22s var(--ease-out-expo); }
+.view-leave-active { transition: opacity 0.16s var(--ease-out-quart), transform 0.16s var(--ease-out-quart); position: absolute; left: 0; right: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .view-enter-active, .view-leave-active { transition: opacity 0.15s; transform: none; }
+}
+</style>

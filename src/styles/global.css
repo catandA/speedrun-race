@@ -156,6 +156,19 @@ input[type="text"], input[type="password"], textarea, select {
   font-family: var(--font-sans);
   transition: border-color 0.14s, box-shadow 0.14s, background 0.14s;
 }
+/* select: 深色主题下拉, 自定义箭头 (系统黑箭头在深底出戏) */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a6a9b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+  cursor: pointer;
+}
+select option { background: var(--surface-2); color: var(--fg); }
 input::placeholder, textarea::placeholder { color: var(--fg-mute); }
 input:focus, textarea:focus, select:focus {
   outline: none;
@@ -194,7 +207,7 @@ label {
   letter-spacing: 0.3px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.14s var(--ease-out-quart), border-color 0.14s, color 0.14s, transform 0.1s var(--ease-out-quart);
+  transition: background 0.14s var(--ease-out-quart), border-color 0.14s, color 0.14s, transform 0.1s var(--ease-out-quart), opacity 0.18s, box-shadow 0.14s;
 }
 .btn:hover { background: var(--surface-3); transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
@@ -277,6 +290,7 @@ label {
   padding: 3px 9px;
   border-radius: var(--radius-sm);
   border: 1px solid;
+  transition: color 0.2s, background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .live-tag.go { color: var(--go); background: var(--go-dim); border-color: var(--border-acc); }
 .live-tag.split { color: var(--split); background: var(--split-dim); border-color: #5a4408; }

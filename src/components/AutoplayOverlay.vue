@@ -1,26 +1,46 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useTrtc } from '../composables/useTrtc'
 
 const { trtc } = useTrtc()
 const visible = ref(false)
+const btnRef = ref(null)
+let lastFocus = null
 
 function show() { visible.value = true }
-function dismiss() {
+async function dismiss() {
   visible.value = false
   try { if (trtc.value && trtc.value.callExperimentalAPI) trtc.value.callExperimentalAPI('resumeAudio') } catch (x) {}
+  // 关闭后把焦点还给触发元素
+  if (lastFocus && lastFocus.focus) lastFocus.focus()
 }
-onMounted(() => window.addEventListener('autoplay-failed', show))
-onUnmounted(() => window.removeEventListener('autoplay-failed', show))
+// 焦点捕获: 弹出时记住原焦点并聚焦到主按钮, ESC 关闭
+async function onShow() {
+  lastFocus = document.activeElement
+  await nextTick()
+  if (btnRef.value) btnRef.value.focus()
+}
+function onKeydown(e) {
+  if (!visible.value) return
+  if (e.key === 'Escape') { e.preventDefault(); dismiss() }
+}
+onMounted(() => {
+  window.addEventListener('autoplay-failed', show)
+  window.addEventListener('keydown', onKeydown)
+})
+onUnmounted(() => {
+  window.removeEventListener('autoplay-failed', show)
+  window.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
-  <div v-if="visible" class="overlay" @click="dismiss">
-    <div class="card">
-      <span class="ic">♪</span>
-      <h3>启用声音</h3>
+  <div v-if="visible" class="overlay" @click="dismiss" @vue:mounted="onShow">
+    <div class="card" role="dialog" aria-modal="true" aria-labelledby="ap-title">
+      <span class="ic" aria-hidden="true">♪</span>
+      <h3 id="ap-title">启用声音</h3>
       <p>浏览器自动播放策略阻止了音频, 点击任意处或按 ESC 启用。</p>
-      <button class="btn primary" @click.stop="dismiss">点击启用</button>
+      <button ref="btnRef" class="btn primary" @click.stop="dismiss">点击启用</button>
     </div>
   </div>
 </template>

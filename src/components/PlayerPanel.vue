@@ -71,6 +71,7 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
     <!-- 预览: 首屏主区, 选手最该盯的画面 -->
     <div class="preview" :class="{ live: sharing }" ref="previewRef">
       <div v-if="!sharing" class="preview-empty">
+        <svg class="ph-ic" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M8 21h8M12 19v2"/></svg>
         <span class="ph-t">NO SIGNAL</span>
         <span class="ph-s">点「开始直播」选择游戏窗口或显示器</span>
       </div>
@@ -166,6 +167,7 @@ const uplinkBad = computed(() => localStats.value && localStats.value.upQ != nul
 }
 .ph-t { font-family: var(--font-mono); font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--fg-mute); }
 .ph-s { font-size: 11.5px; color: var(--fg-mute); }
+.ph-ic { color: var(--fg-mute); opacity: 0.3; margin-bottom: var(--space-sm); }
 
 /* 控制条: 预览下方紧凑区 */
 .ctrl-bar {
