@@ -36,7 +36,7 @@ export function useScreenShare() {
     bindScreenStopped()
     try {
       if (compatMode.value) {
-        await trtc.value.startScreenShare({ view: previewEl, option: { systemAudio: true } })
+        await trtc.value.startScreenShare({ view: previewEl, option: { systemAudio: true, mirror: false } })
         log('✅ 已用兼容模式(辅流)开播')
       } else {
         // 主流方案: 屏幕轨道塞进主流 + 开小流
@@ -44,12 +44,13 @@ export function useScreenShare() {
         screenTrack = ds.getVideoTracks()[0]
         const aTrack = ds.getAudioTracks()[0] || null
         ds.getVideoTracks().forEach(tr => tr.addEventListener('ended', () => onScreenEnded()))
+        // mirror:false 关闭本地预览镜像 (SDK 默认按摄像头自拍镜像, 屏幕内容镜像后文字/游戏UI会反)
         try {
-          await trtc.value.startLocalVideo({ view: previewEl, option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt } })
+          await trtc.value.startLocalVideo({ view: previewEl, option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt, mirror: false } })
         } catch (e1) {
           log('⚠ 直接注入屏幕轨道失败, 走降级: ' + e1.message)
-          await trtc.value.startLocalVideo({ view: previewEl })
-          await trtc.value.updateLocalVideo({ option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt } })
+          await trtc.value.startLocalVideo({ view: previewEl, option: { mirror: false } })
+          await trtc.value.updateLocalVideo({ option: { videoTrack: screenTrack, profile: mainProfile, small: smallOpt, mirror: false } })
         }
         if (aTrack) {
           try { await trtc.value.updateLocalAudio({ option: { audioTrack: aTrack } }); log('✅ 系统声音已接入主流') }
